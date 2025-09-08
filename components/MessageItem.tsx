@@ -1,40 +1,23 @@
 'use client';
 import { ChatMessage } from '../lib/types';
-import clsx from 'clsx';
+import ResultCard from './ResultCard';
 
 export default function MessageItem({ m }: { m: ChatMessage }) {
-  return (
-    <div className={clsx('msg', m.role)}>
-      <div className="bubble">
-        <div className="meta">{m.role === 'user' ? 'You' : 'Assistant'}</div>
-        <div>{m.content}</div>
-        {m.sql && (
-          <div className="kv">
-            <div className="small">SQL generated</div>
-            <pre><code>{m.sql}</code></pre>
-          </div>
-        )}
-        {m.columnsPreview && m.rowsPreview && m.rowsPreview.length > 0 && (
-          <div className="kv tablewrap">
-            <div className="small">Preview</div>
-            <table className="preview">
-              <thead>
-                <tr>
-                  {m.columnsPreview.map((c) => (<th key={c}>{c}</th>))}
-                </tr>
-              </thead>
-              <tbody>
-                {m.rowsPreview.slice(0, 10).map((r, idx) => (
-                  <tr key={idx}>
-                    {r.map((v,i) => (<td key={i}>{v ?? ''}</td>))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {m.error && (<div className="kv"><span className="small">Error:</span> <code>{m.error}</code></div>)}
+  if (m.role === 'assistant') {
+    return (
+      <div className="space-y-3">
+        <div className="text-sm">{m.content}</div>
+        {m.views?.map((v, i) => (
+          <ResultCard key={i} view={v} />
+        ))}
+        {m.explanation && <div className="text-xs text-slate-400">{m.explanation}</div>}
+        {m.error && <div className="text-xs text-red-400">{m.error}</div>}
       </div>
+    );
+  }
+  return (
+    <div className="flex justify-end">
+      <div className="bg-blue-600 text-white rounded p-2 max-w-prose">{m.content}</div>
     </div>
   );
 }
