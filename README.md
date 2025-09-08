@@ -1,19 +1,16 @@
-# PubLog Chat (Next.js + React)
+# PubLog Insights
 
-A sleek, clean chat UI that lets users ask natural‑language questions about your PubLog **gold** tables via your **API Gateway /ask** endpoint (Lambda → Bedrock → Athena).
-
-![screenshot](./public/logo.svg)
+Business-friendly analytics/chat application built with Next.js 14, TypeScript and Tailwind CSS. Users ask natural-language questions about PubLog data and receive charts, tables and KPIs – SQL stays server-side.
 
 ## Features
-- Simple chat interface (App Router, Next.js 14)
-- Calls your existing **POST /ask** endpoint
-- Renders answer text, generated SQL, and a small preview table
-- One‑file .env config, deployable to **Vercel** in minutes
+- Dark dashboard layout with sidebar navigation (Chat, Insights, Datasets, Settings, Support)
+- Chat workspace calling your existing **POST /ask** endpoint
+- Client adapter renders KPI, bar chart (Recharts) and table views
+- Stub profile endpoint at `/api/me`
 
 ## Prereqs
 - Node.js **18+**
-- Your API Gateway endpoint ready (e.g. `https://abc123.execute-api.us-east-1.amazonaws.com/prod/ask`)
-- CORS: allow `POST` and your web origin (you currently have `*`)
+- API Gateway base URL (e.g. `https://abc123.execute-api.us-east-1.amazonaws.com/prod`)
 
 ## Local dev
 ```bash
@@ -21,37 +18,33 @@ cp .env.example .env.local
 # edit NEXT_PUBLIC_API_URL
 npm i
 npm run dev
-# open http://localhost:3000
 ```
+Open <http://localhost:3000>.
 
 ## Deploy to Vercel
-1. Push this folder to a GitHub repo (e.g. `publog-chat`).
+1. Push this folder to a GitHub repo.
 2. In Vercel: **New Project → Import** that repo.
-3. Set **Environment Variable**: `NEXT_PUBLIC_API_URL=https://.../prod/ask`.
-4. Deploy. That’s it.
+3. Set env var `NEXT_PUBLIC_API_URL=https://.../prod`.
+4. Deploy.
 
-## API Contract (what the UI expects)
-Your `/ask` must return JSON like:
+## API Contract
+Frontend calls `POST ${NEXT_PUBLIC_API_URL}/ask`:
 ```json
-{
-  "answer": "Top NIINs by revenue...",
-  "sql": "SELECT ...",
-  "columns": ["niin","revenue"],
-  "rows": [["000000057","12345.67"], ["000000060","23456.78"]],
-  "timing_ms": 812
-}
+{"question":"Top 10 NIINs by revenue in 2022","userContext":{},"resultFormat":"semantic-v1"}
 ```
-On error, return `{ "answer": "", "error": "message" }` or an HTTP 4xx/5xx with `{ "message": "..." }`.
+Response with views:
+```json
+{"answer":"In 2022...","views":[{"type":"kpi","title":"Total","value":123}],"raw":{"columns":[],"rows":[]}}
+```
+If only `{columns,rows}` are returned the client synthesizes basic KPI, bar chart and table.
 
 ## Customization
-- **Branding**: set `NEXT_PUBLIC_APP_NAME` in env.
-- **Styling**: edit `app/globals.css`.
-- **Headers/Auth**: modify the `fetch` in `app/page.tsx` to add auth tokens.
+- Branding: set `NEXT_PUBLIC_APP_NAME`
+- Styling: edit Tailwind config / `app/globals.css`
 
 ## Troubleshooting
-- 500 from API: check **CloudWatch Logs** for your Lambda.
-- CORS errors: make sure API Gateway allows your Vercel domain and `POST`.
-- Nothing renders: verify `NEXT_PUBLIC_API_URL` is populated at build time.
+- 500 from API: check Lambda logs
+- CORS errors: ensure API Gateway allows your domain and `POST`
 
 ---
 
