@@ -27,7 +27,7 @@ export default function HomePage() {
   ];
 
   return (
-    <main className="p-6 grid gap-4 md:grid-cols-3">
+    <div className="p-6 grid gap-4 md:grid-cols-3">
       {sections.map((s) => (
         <div key={s.title} className="bg-slate-900 border border-slate-800 rounded p-4">
           <h2 className="text-lg font-semibold mb-2">{s.title}</h2>
@@ -38,6 +38,6 @@ export default function HomePage() {
           </ul>
         </div>
       ))}
-    </main>
+    </div>
   );
 }
