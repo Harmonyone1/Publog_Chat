@@ -48,6 +48,18 @@ export default function SavedPage() {
               <pre className="bg-slate-900 border border-slate-800 rounded p-3 text-xs overflow-x-auto mt-2">{item.sql}</pre>
             </details>
           )}
+          <div className="mt-2 flex gap-2">
+            <a href={`/chat`} className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800">Open in Chat</a>
+            <button
+              className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800"
+              onClick={async () => {
+                await fetch('/api/saved', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: item.id }) });
+                location.reload();
+              }}
+            >
+              Delete
+            </button>
+          </div>
         </li>
       ))}
       </ul>

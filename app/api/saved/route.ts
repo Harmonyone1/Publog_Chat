@@ -65,3 +65,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: e?.message || 'Invalid request' }, { status: 400 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  const uid = getUid();
+  const ddb = getDdb();
+  try {
+    const { id } = await req.json();
+    if (!id) return NextResponse.json({ ok: false, error: 'Missing id' }, { status: 400 });
+    if (ddb && TABLE_SAVED) {
+      const { DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
+      await ddb.send(new DeleteCommand({ TableName: TABLE_SAVED, Key: { uid, id } } as any));
+    }
+    const res = NextResponse.json({ ok: true });
+    res.cookies.set(UID_COOKIE, uid, { httpOnly: false, sameSite: 'lax', path: '/' });
+    return res;
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message || 'Invalid request' }, { status: 400 });
+  }
+}

@@ -20,10 +20,18 @@ export async function POST(req: Request) {
     try {
       const obj = JSON.parse(text);
       if (plan === 'free') {
-        // Remove SQL from response for free plan
         if (typeof obj === 'object' && obj) {
-          delete obj.sql;
+          // Mark plan and cap rows to 100
           (obj as any)._plan = 'free';
+          if (obj.result && Array.isArray(obj.result.rows)) {
+            const cap = 100;
+            if (obj.result.rows.length > cap) {
+              obj.result.rows = obj.result.rows.slice(0, cap);
+              (obj as any)._note = `Capped to ${cap} rows on Free plan.`;
+            }
+          }
+          // Remove raw SQL for Free
+          delete obj.sql;
         }
       }
       return NextResponse.json(obj, { status: res.status });

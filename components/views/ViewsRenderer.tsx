@@ -6,6 +6,8 @@ import LineChartView from './LineChartView';
 import DataTable from './DataTable';
 import { toCsv } from '../../lib/export';
 import { usePlan, LIMITS } from '../../lib/plan';
+import { useRef } from 'react';
+import { Canvg } from 'canvg';
 
 function deriveViews(columns: Column[], rows: Row[]) {
   if (!columns.length || !rows.length) return {};
@@ -28,6 +30,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
   const [showSql, setShowSql] = useState(false);
   const plan = usePlan();
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+  const chartRef = useRef<HTMLDivElement | null>(null);
   const result = data && data.mode === 'sql' ? data.result : undefined;
   const columns = useMemo(() => (result?.columns ?? []), [result]);
   const rows = useMemo(() => (result?.rows ?? []), [result]);
@@ -81,6 +84,49 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
               Copy SQL
             </button>
           )}
+          {/* Export SVG */}
+          <button
+            className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
+            onClick={() => {
+              const svg = chartRef.current?.querySelector('svg');
+              if (!svg) return;
+              const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'chart.svg';
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Download SVG
+          </button>
+          {/* Export PNG */}
+          <button
+            className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
+            onClick={async () => {
+              const svg = chartRef.current?.querySelector('svg');
+              if (!svg) return;
+              const svgText = new XMLSerializer().serializeToString(svg);
+              const canvas = document.createElement('canvas');
+              canvas.width = 1200; canvas.height = 600;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return;
+              const v = Canvg.fromString(ctx, svgText);
+              await v.render();
+              canvas.toBlob((blob) => {
+                if (!blob) return;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'chart.png';
+                a.click();
+                URL.revokeObjectURL(url);
+              });
+            }}
+          >
+            Download PNG
+          </button>
           {!isFree && (
           <button
             className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
@@ -113,12 +159,14 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
         </div>
       )}
       {views.kpi && <KpiCard title={views.kpi.title} value={views.kpi.value} />}
-      {views.bar && chartType === 'bar' && (
-        <BarChartView title={views.bar.title} data={views.bar.data} xKey={views.bar.encoding.x} yKey={views.bar.encoding.y} />
-      )}
-      {views.bar && chartType === 'line' && (
-        <LineChartView title={views.bar.title} data={views.bar.data} xKey={views.bar.encoding.x} yKey={views.bar.encoding.y} />
-      )}
+      <div ref={chartRef} className="contents">
+        {views.bar && chartType === 'bar' && (
+          <BarChartView title={views.bar.title} data={views.bar.data} xKey={views.bar.encoding.x} yKey={views.bar.encoding.y} />
+        )}
+        {views.bar && chartType === 'line' && (
+          <LineChartView title={views.bar.title} data={views.bar.data} xKey={views.bar.encoding.x} yKey={views.bar.encoding.y} />
+        )}
+      </div>
       <div className="md:col-span-2">
         <DataTable columns={columns} rows={rows} />
       </div>

@@ -109,30 +109,59 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-full">
-      <ChatHistory currentId={sessionId} onSelect={async (id) => {
-        setSessionId(id);
-        // load messages for this session
-        try {
-          const res = await fetch(`/api/messages?sessionId=${encodeURIComponent(id)}`, { cache: 'no-store' });
-          const json = await res.json();
-          const msgs = (json.messages || []).map((m: any) => ({ id: uid(), role: m.role, content: m.content, createdAt: m.ts }));
-          setMessages(msgs);
-        } catch {
-          setMessages([]);
-        }
-      }} onNew={() => {
-        setMessages([]);
-        setLastData(null);
-        setLastError(null);
-        setLastQuestion(null);
-      }} />
       <div className="flex flex-col flex-1 p-2 md:p-4">
+        {/* Inline History toggle */}
+        <details className="mb-2">
+          <summary className="cursor-pointer text-sm text-slate-400">History</summary>
+          <div className="mt-2 border border-slate-800 rounded p-2">
+            <ChatHistory currentId={sessionId} onSelect={async (id) => {
+              setSessionId(id);
+              try {
+                const res = await fetch(`/api/messages?sessionId=${encodeURIComponent(id)}`, { cache: 'no-store' });
+                const json = await res.json();
+                const msgs = (json.messages || []).map((m: any) => ({ id: uid(), role: m.role, content: m.content, createdAt: m.ts }));
+                setMessages(msgs);
+              } catch { setMessages([]); }
+            }} onNew={() => {
+              setMessages([]); setLastData(null); setLastError(null); setLastQuestion(null);
+            }} />
+          </div>
+        </details>
         <MessageList messages={messages} />
         {busy && (
           <div className="text-xs text-slate-400 my-2 animate-pulse">Assistant is thinking...</div>
         )}
         {lastError && <div className="my-2"><ErrorPanel message={lastError} /></div>}
         <ViewsRenderer data={lastData} question={lastQuestion ?? undefined} />
+        {/* Quick start cards when no user messages yet */}
+        {messages.filter((m) => m.role === 'user').length === 0 && !busy && (
+          <div className="grid gap-4 md:grid-cols-3 my-4">
+            <div className="bg-slate-900 border border-slate-800 rounded p-4 animate-fade-in">
+              <h2 className="text-lg font-semibold mb-2">Quick Start</h2>
+              <ul className="list-disc pl-5 text-sm text-slate-400">
+                <li>Ask: &quot;Top suppliers by revenue in 2022&quot;</li>
+                <li>Try: &quot;Average unit price for NIIN 000000057&quot;</li>
+                <li>Trend: &quot;Revenue trend for FSC 1680&quot;</li>
+              </ul>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded p-4 animate-fade-in">
+              <h2 className="text-lg font-semibold mb-2">Tips</h2>
+              <ul className="list-disc pl-5 text-sm text-slate-400">
+                <li>Be specific about dates</li>
+                <li>Include NIIN/FSC where relevant</li>
+                <li>Limit results if you want speed</li>
+              </ul>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded p-4 animate-fade-in">
+              <h2 className="text-lg font-semibold mb-2">What’s New</h2>
+              <ul className="list-disc pl-5 text-sm text-slate-400">
+                <li>Saved &amp; History persistence</li>
+                <li>Chart export</li>
+                <li>Plan-based features</li>
+              </ul>
+            </div>
+          </div>
+        )}
         <div className="mt-4">
           <ChatComposer onSend={handleAsk} disabled={busy} />
         </div>

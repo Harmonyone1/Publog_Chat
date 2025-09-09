@@ -4,8 +4,7 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 
 const navItems = [
-  { href: '/', label: 'Home' },
-  { href: '/chat', label: 'Ask' },
+  { href: '/chat', label: 'Home' },
   { href: '/insights', label: 'Insights' },
   { href: '/datasets', label: 'Datasets' },
   { href: '/saved', label: 'Saved' },

@@ -1,16 +1,20 @@
 'use client';
 import AppSidebar from './AppSidebar';
 import React, { useState } from 'react';
+import UserMenu from './UserMenu';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const appName = process.env.NEXT_PUBLIC_APP_NAME || 'PubLog';
   const env = process.env.NEXT_PUBLIC_DATA_CLASSIFICATION || 'Internal';
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
-      <div className="hidden md:block">
-        <AppSidebar />
+      <div className={`hidden md:block transition-all duration-200 ${collapsed ? 'w-16' : 'w-56'}`}>
+        <div className="h-full">
+          <AppSidebar />
+        </div>
       </div>
       {/* Mobile drawer */}
       {open && (
@@ -30,17 +34,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <span className="sr-only">Open menu</span>
               <div className="h-4 w-4 bg-slate-400" />
             </button>
+            <button aria-label="Collapse sidebar" className="hidden md:inline-flex h-8 w-8 rounded bg-slate-800 items-center justify-center" onClick={() => setCollapsed((v) => !v)}>
+              <div className="h-4 w-4 bg-slate-400" />
+            </button>
             <span className="font-semibold" aria-label="Application name">{appName}</span>
             <span className="text-xs text-slate-400 border border-slate-700 rounded px-2 py-0.5" aria-label="Environment">{env}</span>
           </div>
-          <button aria-label="User menu" className="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center">
-            <span className="sr-only">Open user menu</span>
-            <div className="h-6 w-6 rounded-full bg-slate-500" />
-          </button>
+          <UserMenu />
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
       </div>
     </div>
   );
 }
-
