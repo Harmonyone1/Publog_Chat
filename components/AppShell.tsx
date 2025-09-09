@@ -13,7 +13,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <div className={`hidden md:block transition-all duration-200 ${collapsed ? 'w-16' : 'w-56'}`}>
         <div className="h-full">
-          <AppSidebar />
+          <AppSidebar collapsed={collapsed} />
         </div>
       </div>
       {/* Mobile drawer */}

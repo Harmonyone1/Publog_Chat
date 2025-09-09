@@ -8,7 +8,20 @@ import ErrorPanel from '../../../components/ErrorPanel';
 import ChatHistory from '../../../components/ChatHistory';
 import { ask } from '../../../lib/api';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
+
+function AutoRunner({ onAsk, hasUserMessage }: { onAsk: (q: string) => void; hasUserMessage: boolean }) {
+  const search = useSearchParams();
+  const ran = useRef(false);
+  useEffect(() => {
+    const q = search?.get('q');
+    if (q && !ran.current && !hasUserMessage) {
+      ran.current = true;
+      onAsk(q);
+    }
+  }, [search, hasUserMessage, onAsk]);
+  return null;
+}
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -29,8 +42,6 @@ export default function ChatPage() {
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const search = useSearchParams();
-  const autoRan = useRef(false);
   async function ensureSessionId(title: string): Promise<string> {
     if (sessionId) return sessionId;
     try {
@@ -111,14 +122,7 @@ export default function ChatPage() {
     }
   }
 
-  // Auto-run when q param is present and no messages yet
-  useEffect(() => {
-    const q = search?.get('q');
-    if (q && !autoRan.current && messages.filter((m) => m.role === 'user').length === 0) {
-      autoRan.current = true;
-      handleAsk(q);
-    }
-  }, [search, messages]);
+  // Auto-run query is handled by AutoRunner wrapped in Suspense
 
   return (
     <div className="flex h-full">
@@ -140,6 +144,9 @@ export default function ChatPage() {
             }} />
           </div>
         </details>
+        <Suspense fallback={null}>
+          <AutoRunner onAsk={handleAsk} hasUserMessage={messages.some((m) => m.role === 'user')} />
+        </Suspense>
         <MessageList messages={messages} />
         {busy && (
           <div className="text-xs text-slate-400 my-2 animate-pulse">Assistant is thinking...</div>
