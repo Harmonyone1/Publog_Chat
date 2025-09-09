@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { AskResponse, Column, Row } from '../../lib/types';
 import KpiCard from './KpiCard';
 import BarChartView from './BarChartView';
 import DataTable from './DataTable';
+import { toCsv } from '../../lib/export';
 
 function deriveViews(columns: Column[], rows: Row[]) {
   if (!columns.length || !rows.length) return {};
@@ -20,12 +21,77 @@ function deriveViews(columns: Column[], rows: Row[]) {
   };
 }
 
-export default function ViewsRenderer({ data }: { data: AskResponse | null }) {
+export default function ViewsRenderer({ data, question }: { data: AskResponse | null; question?: string }) {
   if (!data || data.mode !== 'sql' || !data.result) return null;
   const { columns, rows } = data.result;
+  const [showSql, setShowSql] = useState(false);
+  const csv = useMemo(() => toCsv(columns, rows), [columns, rows]);
   const views = deriveViews(columns, rows);
+  async function handleSave() {
+    try {
+      await fetch('/api/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, sql: data.sql }),
+      });
+    } catch {
+      // ignore
+    }
+  }
   return (
     <div className="grid gap-4 md:grid-cols-2 my-4">
+      <div className="md:col-span-2 flex items-center justify-between">
+        <div className="text-sm text-slate-400">
+          {question ? `Question: ${question}` : null}
+        </div>
+        <div className="flex gap-2">
+          {data.sql && (
+            <button
+              className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
+              onClick={() => setShowSql((v) => !v)}
+            >
+              {showSql ? 'Hide SQL' : 'Show SQL'}
+            </button>
+          )}
+          {data.sql && (
+            <button
+              className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
+              onClick={() => {
+                navigator.clipboard?.writeText(data.sql || '').catch(() => {});
+              }}
+            >
+              Copy SQL
+            </button>
+          )}
+          <button
+            className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
+            onClick={() => {
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'results.csv';
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Download CSV
+          </button>
+          <button
+            className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
+            onClick={handleSave}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+      {showSql && data.sql && (
+        <div className="md:col-span-2">
+          <pre className="bg-slate-900 border border-slate-800 rounded p-3 text-xs overflow-x-auto">
+            {data.sql}
+          </pre>
+        </div>
+      )}
       {views.kpi && <KpiCard title={views.kpi.title} value={views.kpi.value} />}
       {views.bar && (
         <BarChartView title={views.bar.title} data={views.bar.data} xKey={views.bar.encoding.x} yKey={views.bar.encoding.y} />

@@ -14,6 +14,13 @@ export type SqlResp = {
 
 export type AskResponse = ChatResp | SqlResp;
 
+export type SavedEntry = {
+  id: string;
+  question: string;
+  sql?: string;
+  createdAt: number;
+};
+
 export type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';

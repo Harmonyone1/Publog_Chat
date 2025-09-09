@@ -22,8 +22,14 @@ export default function SavedPage() {
         <li key={item.id} className="border border-slate-800 rounded p-4">
           <p className="font-medium">{item.question}</p>
           <p className="text-xs text-slate-500 mt-1">
-            {new Date(item.createdAt).toLocaleDateString()}
+            {new Date(item.createdAt).toLocaleString()}
           </p>
+          {item.sql && (
+            <details className="mt-2">
+              <summary className="text-xs text-slate-400 cursor-pointer">Show SQL</summary>
+              <pre className="bg-slate-900 border border-slate-800 rounded p-3 text-xs overflow-x-auto mt-2">{item.sql}</pre>
+            </details>
+          )}
         </li>
       ))}
     </ul>

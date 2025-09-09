@@ -22,10 +22,12 @@ export default function ChatPage() {
   ]);
   const [busy, setBusy] = useState(false);
   const [lastData, setLastData] = useState<AskResponse | null>(null);
+  const [lastQuestion, setLastQuestion] = useState<string | null>(null);
 
   async function handleAsk(question: string) {
     setMessages((m) => [...m, { id: uid(), role: 'user', content: question, createdAt: Date.now() }]);
     setBusy(true);
+    setLastQuestion(question);
     try {
       const resp = await ask(question);
       if ((resp as any).error) {
@@ -78,7 +80,10 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-full">
       <MessageList messages={messages} />
-      <ViewsRenderer data={lastData} />
+      {busy && (
+        <div className="text-xs text-slate-400 my-2">Assistant is thinking...</div>
+      )}
+      <ViewsRenderer data={lastData} question={lastQuestion ?? undefined} />
       <div className="mt-4">
         <ChatComposer onSend={handleAsk} disabled={busy} />
       </div>

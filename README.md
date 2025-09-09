@@ -7,6 +7,8 @@ Business-friendly analytics/chat application built with Next.js 14, TypeScript a
 - Chat workspace calling your existing **POST /ask** endpoint
 - Client adapter renders KPI, bar chart (Recharts) and table views
 - Stub profile endpoint at `/api/me`
+ - Results toolbar: Show/Copy SQL, Download CSV
+ - Save results (per-browser) via `/api/saved` cookie storage; Saved page lists entries
 
 ## Prereqs
 - Node.js **18+**
@@ -48,6 +50,7 @@ If only `{columns,rows}` are returned the client synthesizes basic KPI, bar char
 - 500 from API: check Lambda logs
 - CORS errors: ensure API Gateway allows your domain and `POST`
   - Current allowed origins: `https://publog-chat-6lxsbl196-davids-projects-e5e2fe81.vercel.app`, `http://localhost:3000`
+ - If Saved items don’t persist across browsers, remember they are cookie-based per device.
 
 ---
 
