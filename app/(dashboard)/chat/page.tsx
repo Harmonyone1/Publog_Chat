@@ -7,6 +7,8 @@ import ViewsRenderer from '../../../components/views/ViewsRenderer';
 import ErrorPanel from '../../../components/ErrorPanel';
 import ChatHistory from '../../../components/ChatHistory';
 import { ask } from '../../../lib/api';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -27,6 +29,8 @@ export default function ChatPage() {
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const search = useSearchParams();
+  const autoRan = useRef(false);
   async function ensureSessionId(title: string): Promise<string> {
     if (sessionId) return sessionId;
     try {
@@ -106,6 +110,15 @@ export default function ChatPage() {
       setBusy(false);
     }
   }
+
+  // Auto-run when q param is present and no messages yet
+  useEffect(() => {
+    const q = search?.get('q');
+    if (q && !autoRan.current && messages.filter((m) => m.role === 'user').length === 0) {
+      autoRan.current = true;
+      handleAsk(q);
+    }
+  }, [search, messages]);
 
   return (
     <div className="flex h-full">

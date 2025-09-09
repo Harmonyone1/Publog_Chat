@@ -24,3 +24,4 @@ export function getDdb(): DynamoDBDocumentClient | null {
 export const TABLE_SAVED = process.env.DDB_TABLE_SAVED;
 export const TABLE_HISTORY = process.env.DDB_TABLE_HISTORY;
 export const TABLE_MESSAGES = process.env.DDB_TABLE_MESSAGES;
+export const TABLE_PREFS = process.env.DDB_TABLE_PREFS;

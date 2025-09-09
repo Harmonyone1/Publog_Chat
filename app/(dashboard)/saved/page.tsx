@@ -49,7 +49,7 @@ export default function SavedPage() {
             </details>
           )}
           <div className="mt-2 flex gap-2">
-            <a href={`/chat`} className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800">Open in Chat</a>
+            <a href={`/chat?q=${encodeURIComponent(item.question)}`} className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800">Re-run</a>
             <button
               className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800"
               onClick={async () => {
