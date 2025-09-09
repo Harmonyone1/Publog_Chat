@@ -2,14 +2,8 @@
 import React, { useMemo, useState } from 'react';
 import { Column, Row } from '../../lib/types';
 import { formatNumber, looksNumericHeader } from '../../lib/format';
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
+import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, getFilteredRowModel, useReactTable } from '@tanstack/react-table';
+import { toCsv } from '../../lib/export';
 
 export default function DataTable({ columns, rows, pageSize = 20, locale = 'en-US' }: { columns: Column[]; rows: Row[]; pageSize?: number; locale?: string }) {
   const numericCols = useMemo(() => columns.map((c) => looksNumericHeader(c.name)), [columns]);
@@ -54,14 +48,36 @@ export default function DataTable({ columns, rows, pageSize = 20, locale = 'en-U
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded p-4 overflow-x-auto">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 gap-2">
         <div className="text-sm text-slate-400">Results {allRows.length ? `(${start + 1}-${end} of ${allRows.length})` : ''}</div>
-        <input
-          className="text-sm bg-slate-900 border border-slate-700 rounded px-2 py-1"
-          placeholder="Filter..."
-          value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-        />
+        <div className="flex items-center gap-2">
+          <input
+            className="text-sm bg-slate-900 border border-slate-700 rounded px-2 py-1"
+            placeholder="Filter..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+          />
+          <button
+            className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800"
+            onClick={() => {
+              const cols = columns;
+              const filteredRows = table.getRowModel().rows.map((r) => r.original);
+              const csv = toCsv(cols, filteredRows.map((o: any) => cols.map((c) => o[c.name])));
+              navigator.clipboard?.writeText(csv).catch(() => {});
+            }}
+          >
+            Copy CSV
+          </button>
+          <button
+            className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800"
+            onClick={() => {
+              const json = JSON.stringify(table.getRowModel().rows.map((r) => r.original), null, 2);
+              navigator.clipboard?.writeText(json).catch(() => {});
+            }}
+          >
+            Copy JSON
+          </button>
+        </div>
         <div className="flex items-center gap-2 text-xs">
           <button className="px-2 py-1 border border-slate-700 rounded disabled:opacity-50" onClick={() => goto(0)} disabled={page === 0}>
             « First
@@ -91,6 +107,21 @@ export default function DataTable({ columns, rows, pageSize = 20, locale = 'en-U
               <th className="px-2 py-1"></th>
             </tr>
           ))}
+          <tr>
+            {table.getFlatHeaders().map((h) => (
+              <th key={h.id} className="px-2 py-1">
+                {h.column.getCanFilter() && (
+                  <input
+                    className="w-full text-xs bg-slate-900 border border-slate-700 rounded px-1 py-1"
+                    placeholder={`Filter ${String(h.column.columnDef.header)}`}
+                    value={(h.column.getFilterValue() as string) ?? ''}
+                    onChange={(e) => h.column.setFilterValue(e.target.value)}
+                  />
+                )}
+              </th>
+            ))}
+            <th className="px-2 py-1"></th>
+          </tr>
         </thead>
         <tbody>
           {pageRows.map((row, i) => (
