@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AskResponse, Column, Row } from '../../lib/types';
 import KpiCard from './KpiCard';
 import BarChartView from './BarChartView';
@@ -30,6 +30,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
   const [showSql, setShowSql] = useState(false);
   const plan = usePlan();
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+  const [tablePageSize, setTablePageSize] = useState<number>(20);
   const chartRef = useRef<HTMLDivElement | null>(null);
   const result = data && data.mode === 'sql' ? data.result : undefined;
   const columns = useMemo(() => (result?.columns ?? []), [result]);
@@ -38,6 +39,15 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
   const views = deriveViews(columns, rows);
   const isReady = !!(data && data.mode === 'sql' && data.result);
   const isFree = (data as any)?._plan === 'free';
+
+  useEffect(() => {
+    // Load default chart + page size from server prefs
+    fetch('/api/prefs').then((r) => r.json()).then((j) => {
+      const p = j.prefs || {};
+      if (p.defaultChart) setChartType(p.defaultChart);
+      if (typeof p.pageSize === 'number') setTablePageSize(p.pageSize);
+    }).catch(() => {});
+  }, []);
   async function handleSave() {
     try {
       await fetch('/api/saved', {
@@ -168,7 +178,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
         )}
       </div>
       <div className="md:col-span-2">
-        <DataTable columns={columns} rows={rows} />
+        <DataTable columns={columns} rows={rows} pageSize={tablePageSize} />
       </div>
     </div>
   );

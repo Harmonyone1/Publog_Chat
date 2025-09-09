@@ -2,24 +2,66 @@
 import React, { useMemo, useState } from 'react';
 import { Column, Row } from '../../lib/types';
 import { formatNumber, looksNumericHeader } from '../../lib/format';
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
 
 export default function DataTable({ columns, rows, pageSize = 20, locale = 'en-US' }: { columns: Column[]; rows: Row[]; pageSize?: number; locale?: string }) {
-  const [page, setPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
-  const start = page * pageSize;
-  const end = Math.min(rows.length, start + pageSize);
-  const pageRows = useMemo(() => rows.slice(start, end), [rows, start, end]);
   const numericCols = useMemo(() => columns.map((c) => looksNumericHeader(c.name)), [columns]);
+  const data = useMemo(() => rows.map((r) => Object.fromEntries(columns.map((c, i) => [c.name, r[i]]))), [rows, columns]);
+  const defs: ColumnDef<any>[] = useMemo(
+    () =>
+      columns.map((c, idx) => ({
+        accessorKey: c.name,
+        header: c.name,
+        cell: (info) => (numericCols[idx] ? formatNumber(info.getValue(), { locale }) : (info.getValue() ?? '')),
+      })),
+    [columns, numericCols, locale]
+  );
+
+  const [sorting, setSorting] = useState<any>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
+  const table = useReactTable({
+    data,
+    columns: defs,
+    state: { sorting, globalFilter },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
+  // manual pagination using table.getRowModel().rows
+  const allRows = table.getRowModel().rows;
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(allRows.length / pageSize));
+  const start = page * pageSize;
+  const end = Math.min(allRows.length, start + pageSize);
+  const pageRows = allRows.slice(start, end);
 
   function goto(p: number) {
     const np = Math.max(0, Math.min(pageCount - 1, p));
     setPage(np);
   }
 
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded p-4 overflow-x-auto">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-sm text-slate-400">Results {rows.length ? `(${start + 1}-${end} of ${rows.length})` : ''}</div>
+        <div className="text-sm text-slate-400">Results {allRows.length ? `(${start + 1}-${end} of ${allRows.length})` : ''}</div>
+        <input
+          className="text-sm bg-slate-900 border border-slate-700 rounded px-2 py-1"
+          placeholder="Filter..."
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+        />
         <div className="flex items-center gap-2 text-xs">
           <button className="px-2 py-1 border border-slate-700 rounded disabled:opacity-50" onClick={() => goto(0)} disabled={page === 0}>
             « First
@@ -27,9 +69,7 @@ export default function DataTable({ columns, rows, pageSize = 20, locale = 'en-U
           <button className="px-2 py-1 border border-slate-700 rounded disabled:opacity-50" onClick={() => goto(page - 1)} disabled={page === 0}>
             ‹ Prev
           </button>
-          <span className="px-1">
-            Page {page + 1} / {pageCount}
-          </span>
+          <span className="px-1">Page {page + 1} / {pageCount}</span>
           <button className="px-2 py-1 border border-slate-700 rounded disabled:opacity-50" onClick={() => goto(page + 1)} disabled={page >= pageCount - 1}>
             Next ›
           </button>
@@ -40,23 +80,41 @@ export default function DataTable({ columns, rows, pageSize = 20, locale = 'en-U
       </div>
       <table className="text-sm min-w-full">
         <thead>
-          <tr>
-            {columns.map((c) => (
-              <th key={c.name} className="text-left px-2 py-1 font-medium">
-                {c.name}
-              </th>
-            ))}
-          </tr>
+          {table.getHeaderGroups().map((hg) => (
+            <tr key={hg.id}>
+              {hg.headers.map((h) => (
+                <th key={h.id} className="text-left px-2 py-1 font-medium select-none cursor-pointer" onClick={h.column.getToggleSortingHandler()}>
+                  {flexRender(h.column.columnDef.header, h.getContext())}
+                  {{ asc: ' ▲', desc: ' ▼' }[h.column.getIsSorted() as string] ?? null}
+                </th>
+              ))}
+              <th className="px-2 py-1"></th>
+            </tr>
+          ))}
         </thead>
         <tbody>
           {pageRows.map((row, i) => (
-            <tr key={i} className="border-t border-slate-800">
-              {row.map((cell, j) => (
-                <td key={j} className="px-2 py-1">
-                  {numericCols[j] ? formatNumber(cell as any, { locale }) : ((cell as any) ?? '')}
+            <React.Fragment key={row.id}>
+              <tr className="border-t border-slate-800">
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="px-2 py-1">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+                <td className="px-2 py-1 text-right">
+                  <button className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800" onClick={() => setExpandedRow(expandedRow === i ? null : i)}>
+                    {expandedRow === i ? 'Hide' : 'Details'}
+                  </button>
                 </td>
-              ))}
-            </tr>
+              </tr>
+              {expandedRow === i && (
+                <tr>
+                  <td colSpan={columns.length + 1} className="px-2 py-2 bg-slate-950/60">
+                    <pre className="text-xs overflow-x-auto">{JSON.stringify(row.original, null, 2)}</pre>
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
           ))}
         </tbody>
       </table>

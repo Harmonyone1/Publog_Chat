@@ -28,15 +28,7 @@ function uid() {
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: uid(),
-      role: 'assistant',
-      content:
-        'Hi! Ask me about awards, suppliers, NIINs, prices, etc. Example: "Top 10 NIINs by revenue in 2022"',
-      createdAt: Date.now(),
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [lastData, setLastData] = useState<AskResponse | null>(null);
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
