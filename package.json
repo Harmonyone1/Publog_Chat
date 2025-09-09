@@ -13,8 +13,10 @@
     "@aws-sdk/lib-dynamodb": "^3.653.0",
     "@tanstack/react-query": "^5.87.1",
     "@tanstack/react-table": "^8.21.3",
+    "canvg": "^4.0.2",
     "clsx": "2.1.0",
     "next": "14.2.5",
+    "next-auth": "^4.24.7",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "recharts": "^3.1.2",
@@ -34,5 +36,3 @@
     "typescript": "5.4.5"
   }
 }
-    "canvg": "^4.0.2",
-    "next-auth": "^4.24.7",
