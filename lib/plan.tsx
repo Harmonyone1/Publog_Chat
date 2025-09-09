@@ -10,7 +10,10 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<Plan>('free');
   useEffect(() => {
     try {
-      const saved = (localStorage.getItem(KEY) as Plan) || 'free';
+      // Initialize from cookie or localStorage
+      const cookieMatch = document.cookie.match(/(?:^|; )selected_plan_v1=([^;]+)/);
+      const fromCookie = cookieMatch ? decodeURIComponent(cookieMatch[1]) as Plan : undefined;
+      const saved = (fromCookie || (localStorage.getItem(KEY) as Plan)) || 'free';
       if (saved) setPlan(saved);
       const onStorage = (e: StorageEvent) => {
         if (e.key === KEY && e.newValue) setPlan(e.newValue as Plan);
@@ -19,6 +22,12 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       return () => window.removeEventListener('storage', onStorage);
     } catch {}
   }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(KEY, plan);
+      document.cookie = `selected_plan_v1=${encodeURIComponent(plan)}; path=/; SameSite=Lax`;
+    } catch {}
+  }, [plan]);
   return <PlanContext.Provider value={plan}>{children}</PlanContext.Provider>;
 }
 
@@ -31,4 +40,3 @@ export const LIMITS = {
   pro: { historySessions: 100, savedItems: 1000 },
   enterprise: { historySessions: 1000, savedItems: 10000 },
 } as const;
-

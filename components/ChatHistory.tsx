@@ -40,6 +40,29 @@ export default function ChatHistory({ currentId, onSelect, onNew }: { currentId:
     onNew();
   }
 
+  async function renameSession(id: string, title: string) {
+    try {
+      const res = await fetch('/api/history', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, title }) });
+      if (!res.ok) throw new Error('Failed');
+      await refresh();
+    } catch {
+      // ignore
+    }
+  }
+
+  async function deleteSession(id: string) {
+    try {
+      const res = await fetch('/api/history', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      if (!res.ok) throw new Error('Failed');
+      await refresh();
+    } catch {
+      // ignore
+    }
+  }
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+
   return (
     <div className="w-56 border-r border-slate-800 p-3 hidden md:block">
       <div className="flex items-center justify-between mb-2">
@@ -50,14 +73,26 @@ export default function ChatHistory({ currentId, onSelect, onNew }: { currentId:
       </div>
       <ul className="space-y-1">
         {sessions.map((s) => (
-          <li key={s.id}>
-            <button
-              className={clsx('w-full text-left px-2 py-1 rounded text-sm', currentId === s.id ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white')}
-              onClick={() => onSelect(s.id)}
-              title={new Date(s.createdAt).toLocaleString()}
-            >
-              {s.title}
-            </button>
+          <li key={s.id} className="group">
+            {editingId === s.id ? (
+              <div className="flex items-center gap-1">
+                <input className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm" value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} />
+                <button className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800" onClick={() => { renameSession(s.id, editingTitle || 'Untitled'); setEditingId(null); }}>Save</button>
+                <button className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800" onClick={() => setEditingId(null)}>Cancel</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <button
+                  className={clsx('flex-1 text-left px-2 py-1 rounded text-sm', currentId === s.id ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white')}
+                  onClick={() => onSelect(s.id)}
+                  title={new Date(s.createdAt).toLocaleString()}
+                >
+                  {s.title}
+                </button>
+                <button className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800" onClick={() => { setEditingId(s.id); setEditingTitle(s.title); }}>Edit</button>
+                <button className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800" onClick={() => deleteSession(s.id)}>Del</button>
+              </div>
+            )}
           </li>
         ))}
       </ul>
