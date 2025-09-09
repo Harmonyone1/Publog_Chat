@@ -5,6 +5,7 @@ import BarChartView from './BarChartView';
 import LineChartView from './LineChartView';
 import DataTable from './DataTable';
 import { toCsv } from '../../lib/export';
+import { usePlan, LIMITS } from '../../lib/plan';
 
 function deriveViews(columns: Column[], rows: Row[]) {
   if (!columns.length || !rows.length) return {};
@@ -26,6 +27,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
   if (!data || data.mode !== 'sql' || !data.result) return null;
   const { columns, rows } = data.result;
   const [showSql, setShowSql] = useState(false);
+  const plan = usePlan();
   const csv = useMemo(() => toCsv(columns, rows), [columns, rows]);
   const views = deriveViews(columns, rows);
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');

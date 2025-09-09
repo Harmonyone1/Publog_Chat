@@ -1,46 +1,52 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
+import { usePlan, LIMITS } from '../lib/plan';
 
 type Session = { id: string; title: string; createdAt: number };
-const KEY = 'chat_sessions_v1';
-
-function loadSessions(): Session[] {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Session[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSessions(list: Session[]) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(list));
-  } catch {}
-}
 
 export default function ChatHistory({ currentId, onSelect, onNew }: { currentId: string | null; onSelect: (id: string) => void; onNew: () => void }) {
+  const plan = usePlan();
   const [sessions, setSessions] = useState<Session[]>([]);
+  const limit = LIMITS[plan].historySessions;
+  const canAdd = sessions.length < limit;
+
+  async function refresh() {
+    try {
+      const res = await fetch('/api/history', { cache: 'no-store' });
+      const json = await res.json();
+      setSessions((json.sessions as Session[]) || []);
+    } catch {
+      setSessions([]);
+    }
+  }
 
   useEffect(() => {
-    setSessions(loadSessions());
+    refresh();
   }, []);
 
-  function addSession() {
-    const s: Session = { id: Math.random().toString(36).slice(2) + Date.now().toString(36), title: 'New chat', createdAt: Date.now() };
-    const list = [s, ...sessions];
-    setSessions(list);
-    saveSessions(list);
+  async function addSession() {
+    if (!canAdd) {
+      alert(`History limit reached for your plan (${limit}). Upgrade on the Plans page.`);
+      return;
+    }
+    try {
+      const res = await fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'New chat' }) });
+      if (!res.ok) throw new Error('Failed');
+      await refresh();
+    } catch {
+      // ignore
+    }
     onNew();
-    onSelect(s.id);
   }
 
   return (
     <div className="w-56 border-r border-slate-800 p-3 hidden md:block">
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm text-slate-400">History</div>
-        <button className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800" onClick={addSession}>New Chat</button>
+        <button className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800" onClick={addSession} disabled={!canAdd}>
+          {canAdd ? 'New Chat' : 'Limit'}
+        </button>
       </div>
       <ul className="space-y-1">
         {sessions.map((s) => (
@@ -55,7 +61,7 @@ export default function ChatHistory({ currentId, onSelect, onNew }: { currentId:
           </li>
         ))}
       </ul>
+      <div className="mt-3 text-[11px] text-slate-500">Plan: {plan} • Limit {limit} sessions</div>
     </div>
   );
 }
-

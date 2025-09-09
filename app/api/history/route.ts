@@ -1,0 +1,60 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { genId, UID_COOKIE } from '../../../lib/uid';
+import { getDdb, TABLE_HISTORY } from '../../../lib/aws';
+import { QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+
+type Session = { id: string; title: string; createdAt: number };
+
+function getUid(): string {
+  const jar = cookies();
+  let uid = jar.get(UID_COOKIE)?.value;
+  if (!uid) uid = genId();
+  return uid;
+}
+
+export async function GET() {
+  const uid = getUid();
+  const ddb = getDdb();
+  let sessions: Session[] = [];
+  if (ddb && TABLE_HISTORY) {
+    try {
+      const resp = await ddb.send(new QueryCommand({
+        TableName: TABLE_HISTORY,
+        KeyConditions: undefined as any,
+        KeyConditionExpression: '#u = :u',
+        ExpressionAttributeNames: { '#u': 'uid' },
+        ExpressionAttributeValues: { ':u': uid },
+        ScanIndexForward: false,
+      }));
+      sessions = (resp.Items || []).map((it: any) => ({ id: it.id, title: it.title, createdAt: it.createdAt }));
+    } catch (e) {
+      // ignore and fall back to empty
+    }
+  }
+  const res = NextResponse.json({ sessions });
+  // Ensure uid cookie
+  res.cookies.set(UID_COOKIE, uid, { httpOnly: false, sameSite: 'lax', path: '/' });
+  return res;
+}
+
+export async function POST(req: NextRequest) {
+  const uid = getUid();
+  const body = await req.json().catch(() => ({}));
+  const title = (body && body.title) || 'New chat';
+  const id = genId();
+  const createdAt = Date.now();
+  const item = { uid, id, title, createdAt };
+  const ddb = getDdb();
+  if (ddb && TABLE_HISTORY) {
+    try {
+      await ddb.send(new PutCommand({ TableName: TABLE_HISTORY, Item: item }));
+    } catch (e) {
+      // ignore
+    }
+  }
+  const res = NextResponse.json({ ok: true, session: { id, title, createdAt } });
+  res.cookies.set(UID_COOKIE, uid, { httpOnly: false, sameSite: 'lax', path: '/' });
+  return res;
+}
+

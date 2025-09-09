@@ -1,6 +1,7 @@
 'use client';
 import useSWR from 'swr';
 import { useMemo, useState } from 'react';
+import { usePlan, LIMITS } from '../../../lib/plan';
 
 type SavedItem = {
   id: string;
@@ -11,6 +12,7 @@ type SavedItem = {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function SavedPage() {
+  const plan = usePlan();
   const { data, error } = useSWR<{ saved: SavedItem[] }>(
     '/api/saved',
     fetcher
@@ -19,6 +21,7 @@ export default function SavedPage() {
   if (!data) return <div>Loading saved results...</div>;
   const [q, setQ] = useState('');
   const filtered = useMemo(() => (data.saved || []).filter((s) => s.question.toLowerCase().includes(q.toLowerCase())), [data.saved, q]);
+  const limit = LIMITS[plan].savedItems;
   return (
     <div>
       <div className="mb-3">
@@ -29,6 +32,7 @@ export default function SavedPage() {
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
+      <div className="text-xs text-slate-500 mb-2">Plan: {plan} • Up to {limit} saved items</div>
       <ul className="space-y-2">
       {filtered.map((item) => (
         <li key={item.id} className="border border-slate-800 rounded p-4">
