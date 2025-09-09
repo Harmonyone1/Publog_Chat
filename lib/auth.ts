@@ -14,7 +14,6 @@ if (process.env.COGNITO_CLIENT_ID && process.env.COGNITO_CLIENT_SECRET && proces
 
 export const authOptions: NextAuthOptions = {
   providers,
-  trustHost: true,
   callbacks: {
     async jwt({ token, account, profile }) {
       if (account && profile) {
@@ -33,7 +32,8 @@ export const authOptions: NextAuthOptions = {
     },
   },
   session: { strategy: 'jwt' },
-  secret: process.env.NEXTAUTH_SECRET,
+  // Fallback secret to reduce 500s if env not set; set NEXTAUTH_SECRET in production
+  secret: process.env.NEXTAUTH_SECRET || 'set-a-strong-secret',
 };
 
 export default NextAuth(authOptions);
