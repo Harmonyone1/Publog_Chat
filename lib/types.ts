@@ -1,11 +1,14 @@
+export type Column = { name: string; type?: string };
+export type Row = any[];
+
 export type ChatResp = { mode: 'chat'; answer: string };
 
 export type SqlResp = {
   mode: 'sql';
   sql?: string;
   result?: {
-    columns: { name: string; type?: string }[];
-    rows: any[]; // treat as any[][]
+    columns: Column[];
+    rows: Row[]; // treat as any[][]
   };
 };
 
