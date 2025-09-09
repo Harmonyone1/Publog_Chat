@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 
-export default function ChatInput({ onSend, disabled }: { onSend: (text: string) => void; disabled?: boolean }) {
+export default function ChatComposer({ onSend, disabled }: { onSend: (text: string) => void; disabled?: boolean }) {
   const [value, setValue] = useState('');
   return (
     <div className="flex gap-2">

@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { ChatMessage } from '../../../lib/types';
-import ChatStream from '../../../components/ChatStream';
-import ChatInput from '../../../components/ChatInput';
+import { ChatMessage, AskResponse } from '../../../lib/types';
+import MessageList from '../../../components/MessageList';
+import ChatComposer from '../../../components/ChatComposer';
+import ViewsRenderer from '../../../components/views/ViewsRenderer';
 import { ask } from '../../../lib/api';
 
 function uid() {
@@ -14,28 +15,32 @@ export default function ChatPage() {
     {
       id: uid(),
       role: 'assistant',
-      content: 'Hi! Ask me about awards, suppliers, NIINs, prices, etc. Example: "Top 10 NIINs by revenue in 2022"',
+      content:
+        'Hi! Ask me about awards, suppliers, NIINs, prices, etc. Example: "Top 10 NIINs by revenue in 2022"',
       createdAt: Date.now(),
     },
   ]);
   const [busy, setBusy] = useState(false);
+  const [lastData, setLastData] = useState<AskResponse | null>(null);
 
   async function handleAsk(question: string) {
     setMessages((m) => [...m, { id: uid(), role: 'user', content: question, createdAt: Date.now() }]);
     setBusy(true);
     try {
-      const payload = await ask(question, {});
-      setMessages((m) => [
-        ...m,
-        {
-          id: uid(),
-          role: 'assistant',
-          content: payload.answer,
-          views: payload.views,
-          explanation: payload.explanation,
-          createdAt: Date.now(),
-        },
-      ]);
+      const resp = await ask(question);
+      if (resp.mode === 'chat') {
+        setMessages((m) => [
+          ...m,
+          { id: uid(), role: 'assistant', content: resp.answer, createdAt: Date.now() },
+        ]);
+        setLastData(null);
+      } else if (resp.mode === 'sql') {
+        setMessages((m) => [
+          ...m,
+          { id: uid(), role: 'assistant', content: 'Here are the results.', createdAt: Date.now() },
+        ]);
+        setLastData(resp);
+      }
     } catch (e: any) {
       setMessages((m) => [
         ...m,
@@ -48,9 +53,10 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <ChatStream messages={messages} />
+      <MessageList messages={messages} />
+      <ViewsRenderer data={lastData} />
       <div className="mt-4">
-        <ChatInput onSend={handleAsk} disabled={busy} />
+        <ChatComposer onSend={handleAsk} disabled={busy} />
       </div>
     </div>
   );
