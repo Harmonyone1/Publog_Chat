@@ -4,16 +4,25 @@ export async function ask(question: string): Promise<AskResponse> {
   const payload = { question };
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ask`, {
+      const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      console.log('API status', res.status);
+      const text = await res.text();
+      console.log('API raw response', text);
       if (!res.ok) {
-        throw new Error(`Request failed: ${res.status}`);
+        throw new Error(`Request failed with ${res.status}`);
       }
-      const data = await res.json();
-      const body = typeof data === 'object' && data && 'body' in data ? JSON.parse((data as any).body) : data;
+      let json: any;
+      try {
+        json = JSON.parse(text);
+      } catch (err) {
+        console.error('Failed to parse response:', text);
+        throw err;
+      }
+      const body = typeof json.body === 'string' ? JSON.parse(json.body) : json.body ?? json;
       return body as AskResponse;
     } catch (err) {
       if (attempt === 2) throw err;

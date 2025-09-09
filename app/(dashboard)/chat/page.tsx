@@ -28,7 +28,19 @@ export default function ChatPage() {
     setBusy(true);
     try {
       const resp = await ask(question);
-      if (resp.mode === 'chat') {
+      if ((resp as any).error) {
+        setMessages((m) => [
+          ...m,
+          {
+            id: uid(),
+            role: 'assistant',
+            content: 'Request failed',
+            error: (resp as any).error,
+            createdAt: Date.now(),
+          },
+        ]);
+        setLastData(null);
+      } else if (resp.mode === 'chat') {
         setMessages((m) => [
           ...m,
           { id: uid(), role: 'assistant', content: resp.answer, createdAt: Date.now() },
@@ -40,6 +52,18 @@ export default function ChatPage() {
           { id: uid(), role: 'assistant', content: 'Here are the results.', createdAt: Date.now() },
         ]);
         setLastData(resp);
+      } else {
+        setMessages((m) => [
+          ...m,
+          {
+            id: uid(),
+            role: 'assistant',
+            content: 'Unexpected response',
+            error: JSON.stringify(resp),
+            createdAt: Date.now(),
+          },
+        ]);
+        setLastData(null);
       }
     } catch (e: any) {
       setMessages((m) => [
