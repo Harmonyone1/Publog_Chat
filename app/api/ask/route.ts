@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
@@ -9,16 +12,24 @@ export async function POST(req: Request) {
       console.error('NEXT_PUBLIC_API_URL is not set to a valid URL');
       return NextResponse.json({ error: 'API base URL not configured' }, { status: 500 });
     }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
+    if (apiKey) headers['x-api-key'] = apiKey;
     const res = await fetch(`${base}/ask`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
     });
     const text = await res.text();
     // Attempt to gate features by plan server-side
     const plan = cookies().get('selected_plan_v1')?.value || 'free';
     try {
-      const obj = JSON.parse(text);
+      let obj: any = JSON.parse(text);
+      // Unwrap API Gateway style { statusCode, body }
+      if (obj && typeof obj === 'object' && 'statusCode' in obj && 'body' in obj) {
+        const inner = typeof obj.body === 'string' ? JSON.parse(obj.body) : obj.body;
+        obj = inner || obj;
+      }
       if (plan === 'free') {
         if (typeof obj === 'object' && obj) {
           // Mark plan and cap rows to 100
@@ -36,14 +47,12 @@ export async function POST(req: Request) {
       }
       return NextResponse.json(obj, { status: res.status });
     } catch {
-      // Fallback to raw text if not JSON
-      return new NextResponse(text, {
-        status: res.status,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      // Fallback: pass through upstream error body
+      const ct = res.headers.get('content-type') || 'text/plain; charset=utf-8';
+      return new NextResponse(text, { status: res.status, headers: { 'Content-Type': ct } });
     }
   } catch (err) {
-    console.error('Lambda request failed', err);
-    return NextResponse.json({ error: 'Upstream request failed' }, { status: 500 });
+    console.error('Upstream request failed', err);
+    return NextResponse.json({ error: 'Upstream request failed', detail: String(err) }, { status: 502 });
   }
 }
