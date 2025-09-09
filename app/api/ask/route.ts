@@ -21,34 +21,37 @@ export async function POST(req: Request) {
       body: JSON.stringify(payload),
     });
     const text = await res.text();
-    // Attempt to gate features by plan server-side
+    const ct = res.headers.get('content-type') || 'application/json; charset=utf-8';
     const plan = cookies().get('selected_plan_v1')?.value || 'free';
+    // On upstream error, return payload without gating
+    if (!res.ok) {
+      try {
+        const errObj = JSON.parse(text);
+        return NextResponse.json(errObj, { status: res.status });
+      } catch {
+        return new NextResponse(text, { status: res.status, headers: { 'Content-Type': ct } });
+      }
+    }
+    // Success path
     try {
       let obj: any = JSON.parse(text);
-      // Unwrap API Gateway style { statusCode, body }
       if (obj && typeof obj === 'object' && 'statusCode' in obj && 'body' in obj) {
         const inner = typeof obj.body === 'string' ? JSON.parse(obj.body) : obj.body;
         obj = inner || obj;
       }
-      if (plan === 'free') {
-        if (typeof obj === 'object' && obj) {
-          // Mark plan and cap rows to 100
-          (obj as any)._plan = 'free';
-          if (obj.result && Array.isArray(obj.result.rows)) {
-            const cap = 100;
-            if (obj.result.rows.length > cap) {
-              obj.result.rows = obj.result.rows.slice(0, cap);
-              (obj as any)._note = `Capped to ${cap} rows on Free plan.`;
-            }
+      if (plan === 'free' && obj && typeof obj === 'object') {
+        (obj as any)._plan = 'free';
+        if (obj.result && Array.isArray(obj.result.rows)) {
+          const cap = 100;
+          if (obj.result.rows.length > cap) {
+            obj.result.rows = obj.result.rows.slice(0, cap);
+            (obj as any)._note = `Capped to ${cap} rows on Free plan.`;
           }
-          // Remove raw SQL for Free
-          delete obj.sql;
         }
+        delete obj.sql;
       }
       return NextResponse.json(obj, { status: res.status });
     } catch {
-      // Fallback: pass through upstream error body
-      const ct = res.headers.get('content-type') || 'text/plain; charset=utf-8';
       return new NextResponse(text, { status: res.status, headers: { 'Content-Type': ct } });
     }
   } catch (err) {
