@@ -24,7 +24,9 @@ Open <http://localhost:3000>.
 ## Deploy to Vercel
 1. Push this folder to a GitHub repo.
 2. In Vercel: **New Project → Import** that repo.
-3. Set env var `NEXT_PUBLIC_API_URL=https://.../prod`.
+3. Set env var `NEXT_PUBLIC_API_URL` to your API Gateway base URL (no trailing `/ask`).
+   - Default stage (current setup): `https://qpbhjn080e.execute-api.us-east-1.amazonaws.com`
+   - Explicit stage example: `https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod`
 4. Deploy.
 
 ## API Contract
@@ -45,6 +47,7 @@ If only `{columns,rows}` are returned the client synthesizes basic KPI, bar char
 ## Troubleshooting
 - 500 from API: check Lambda logs
 - CORS errors: ensure API Gateway allows your domain and `POST`
+  - Current allowed origins: `https://publog-chat-6lxsbl196-davids-projects-e5e2fe81.vercel.app`, `http://localhost:3000`
 
 ---
 

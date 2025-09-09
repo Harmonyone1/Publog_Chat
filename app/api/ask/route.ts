@@ -3,7 +3,12 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ask`, {
+    const base = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://qpbhjn080e.execute-api.us-east-1.amazonaws.com';
+    if (!base || !base.startsWith('http')) {
+      console.error('NEXT_PUBLIC_API_URL is not set to a valid URL');
+      return NextResponse.json({ error: 'API base URL not configured' }, { status: 500 });
+    }
+    const res = await fetch(`${base}/ask`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

@@ -1,4 +1,15 @@
 from __future__ import annotations
+"""
+NOTE: This file is a local stub used for typing/examples only.
+It is NOT the production backend used by the Chat UI.
+
+The deployed API Gateway /ask route integrates with the Lambda
+function named `publog-nlsql`, which generates SQL via Bedrock
+and queries Athena through the `publog-athena-proxy` Lambda.
+
+Do not deploy this stub to AWS for production; it returns
+hardcoded responses for demonstration.
+"""
 import json
 from typing import Any, TypedDict, List, Optional, Literal
 
