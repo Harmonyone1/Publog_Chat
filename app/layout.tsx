@@ -1,7 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import AppSidebar from '../components/AppSidebar';
-import AppHeader from '../components/AppHeader';
+import AppShell from '../components/AppShell';
 import { PlanProvider } from '../lib/plan';
 
 export const metadata: Metadata = {
@@ -14,13 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="dark h-full">
       <body className="min-h-full bg-slate-950 text-slate-50">
         <PlanProvider>
-          <div className="flex min-h-screen">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 min-h-screen">
-              <AppHeader />
-              <main className="flex-1 overflow-y-auto p-6">{children}</main>
-            </div>
-          </div>
+          <AppShell>{children}</AppShell>
         </PlanProvider>
       </body>
     </html>

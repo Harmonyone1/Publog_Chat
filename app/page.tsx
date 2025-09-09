@@ -11,9 +11,9 @@ export default async function HomePage() {
       <div className="bg-slate-900 border border-slate-800 rounded p-4 animate-fade-in">
         <h2 className="text-lg font-semibold mb-2">Quick Start</h2>
         <ul className="list-disc pl-5 text-sm text-slate-400">
-          <li>Ask: "Top suppliers by revenue in 2022"</li>
-          <li>Try: "Average unit price for NIIN 000000057"</li>
-          <li>Trend: "Revenue trend for FSC 1680"</li>
+          <li>Ask: &quot;Top suppliers by revenue in 2022&quot;</li>
+          <li>Try: &quot;Average unit price for NIIN 000000057&quot;</li>
+          <li>Trend: &quot;Revenue trend for FSC 1680&quot;</li>
         </ul>
       </div>
       <div className="bg-slate-900 border border-slate-800 rounded p-4 animate-fade-in">

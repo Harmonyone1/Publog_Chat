@@ -24,13 +24,16 @@ function deriveViews(columns: Column[], rows: Row[]) {
 }
 
 export default function ViewsRenderer({ data, question }: { data: AskResponse | null; question?: string }) {
-  if (!data || data.mode !== 'sql' || !data.result) return null;
-  const { columns, rows } = data.result;
+  // Declare hooks unconditionally to satisfy rules-of-hooks
   const [showSql, setShowSql] = useState(false);
   const plan = usePlan();
+  const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+  const result = data && data.mode === 'sql' ? data.result : undefined;
+  const columns = result?.columns || [];
+  const rows = result?.rows || [];
   const csv = useMemo(() => toCsv(columns, rows), [columns, rows]);
   const views = deriveViews(columns, rows);
-  const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+  const isReady = !!(data && data.mode === 'sql' && data.result);
   async function handleSave() {
     try {
       await fetch('/api/saved', {
@@ -42,6 +45,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
       // ignore
     }
   }
+  if (!isReady) return null;
   return (
     <div className="grid gap-4 md:grid-cols-2 my-4">
       <div className="md:col-span-2 flex items-center justify-between">

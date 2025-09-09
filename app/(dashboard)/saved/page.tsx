@@ -17,11 +17,12 @@ export default function SavedPage() {
     '/api/saved',
     fetcher
   );
+  // Hooks must be unconditional
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => ((data?.saved || []) as SavedItem[]).filter((s) => s.question.toLowerCase().includes(q.toLowerCase())), [data, q]);
+  const limit = LIMITS[plan].savedItems;
   if (error) return <div>Failed to load saved results.</div>;
   if (!data) return <div>Loading saved results...</div>;
-  const [q, setQ] = useState('');
-  const filtered = useMemo(() => (data.saved || []).filter((s) => s.question.toLowerCase().includes(q.toLowerCase())), [data.saved, q]);
-  const limit = LIMITS[plan].savedItems;
   return (
     <div>
       <div className="mb-3">
