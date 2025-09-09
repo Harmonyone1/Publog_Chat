@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { genId, UID_COOKIE } from '../../../lib/uid';
+import { genId, UID_COOKIE, getCurrentUid } from '../../../lib/uid';
 import { getDdb, TABLE_MESSAGES } from '../../../lib/aws';
 import { QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 
-function getUid(): string {
-  const jar = cookies();
-  let uid = jar.get(UID_COOKIE)?.value;
-  if (!uid) uid = genId();
-  return uid;
-}
+function getUid(): string { return getCurrentUid(); }
 
 export async function GET(req: NextRequest) {
   const uid = getUid();
@@ -51,4 +46,3 @@ export async function POST(req: NextRequest) {
   res.cookies.set(UID_COOKIE, uid, { httpOnly: false, sameSite: 'lax', path: '/' });
   return res;
 }
-

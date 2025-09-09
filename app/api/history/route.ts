@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { genId, UID_COOKIE } from '../../../lib/uid';
+import { genId, UID_COOKIE, getCurrentUid } from '../../../lib/uid';
 import { getDdb, TABLE_HISTORY } from '../../../lib/aws';
 import { QueryCommand, PutCommand, DeleteCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 type Session = { id: string; title: string; createdAt: number };
 
-function getUid(): string {
-  const jar = cookies();
-  let uid = jar.get(UID_COOKIE)?.value;
-  if (!uid) uid = genId();
-  return uid;
-}
+function getUid(): string { return getCurrentUid(); }
 
 export async function GET() {
   const uid = getUid();

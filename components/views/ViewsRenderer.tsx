@@ -29,8 +29,8 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
   const plan = usePlan();
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const result = data && data.mode === 'sql' ? data.result : undefined;
-  const columns = result?.columns || [];
-  const rows = result?.rows || [];
+  const columns = useMemo(() => (result?.columns ?? []), [result]);
+  const rows = useMemo(() => (result?.rows ?? []), [result]);
   const csv = useMemo(() => toCsv(columns, rows), [columns, rows]);
   const views = deriveViews(columns, rows);
   const isReady = !!(data && data.mode === 'sql' && data.result);
@@ -40,7 +40,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
       await fetch('/api/saved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, sql: data.sql }),
+        body: JSON.stringify({ question, sql: (data as any)?.sql }),
       });
     } catch {
       // ignore
