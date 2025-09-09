@@ -1,14 +1,20 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CognitoProvider from 'next-auth/providers/cognito';
 
-export const authOptions: NextAuthOptions = {
-  providers: [
+const providers = [] as any[];
+if (process.env.COGNITO_CLIENT_ID && process.env.COGNITO_CLIENT_SECRET && process.env.COGNITO_ISSUER) {
+  providers.push(
     CognitoProvider({
       clientId: process.env.COGNITO_CLIENT_ID!,
       clientSecret: process.env.COGNITO_CLIENT_SECRET!,
       issuer: process.env.COGNITO_ISSUER!,
-    }),
-  ],
+    })
+  );
+}
+
+export const authOptions: NextAuthOptions = {
+  providers,
+  trustHost: true,
   callbacks: {
     async jwt({ token, account, profile }) {
       if (account && profile) {
@@ -31,4 +37,3 @@ export const authOptions: NextAuthOptions = {
 };
 
 export default NextAuth(authOptions);
-
