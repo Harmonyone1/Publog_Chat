@@ -34,6 +34,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
   const csv = useMemo(() => toCsv(columns, rows), [columns, rows]);
   const views = deriveViews(columns, rows);
   const isReady = !!(data && data.mode === 'sql' && data.result);
+  const isFree = (data as any)?._plan === 'free';
   async function handleSave() {
     try {
       await fetch('/api/saved', {
@@ -80,6 +81,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
               Copy SQL
             </button>
           )}
+          {!isFree && (
           <button
             className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
             onClick={() => {
@@ -94,6 +96,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
           >
             Download CSV
           </button>
+          )}
           <button
             className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
             onClick={handleSave}

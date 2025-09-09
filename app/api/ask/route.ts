@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
   try {
@@ -14,10 +15,25 @@ export async function POST(req: Request) {
       body: JSON.stringify(payload),
     });
     const text = await res.text();
-    return new NextResponse(text, {
-      status: res.status,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // Attempt to gate features by plan server-side
+    const plan = cookies().get('selected_plan_v1')?.value || 'free';
+    try {
+      const obj = JSON.parse(text);
+      if (plan === 'free') {
+        // Remove SQL from response for free plan
+        if (typeof obj === 'object' && obj) {
+          delete obj.sql;
+          (obj as any)._plan = 'free';
+        }
+      }
+      return NextResponse.json(obj, { status: res.status });
+    } catch {
+      // Fallback to raw text if not JSON
+      return new NextResponse(text, {
+        status: res.status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   } catch (err) {
     console.error('Lambda request failed', err);
     return NextResponse.json({ error: 'Upstream request failed' }, { status: 500 });

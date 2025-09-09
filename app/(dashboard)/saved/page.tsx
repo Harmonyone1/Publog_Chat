@@ -6,6 +6,7 @@ import { usePlan, LIMITS } from '../../../lib/plan';
 type SavedItem = {
   id: string;
   question: string;
+  sql?: string;
   createdAt: number;
 };
 
