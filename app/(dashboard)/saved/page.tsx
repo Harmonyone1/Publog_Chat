@@ -1,5 +1,6 @@
 'use client';
 import useSWR from 'swr';
+import { useMemo, useState } from 'react';
 
 type SavedItem = {
   id: string;
@@ -16,9 +17,20 @@ export default function SavedPage() {
   );
   if (error) return <div>Failed to load saved results.</div>;
   if (!data) return <div>Loading saved results...</div>;
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => (data.saved || []).filter((s) => s.question.toLowerCase().includes(q.toLowerCase())), [data.saved, q]);
   return (
-    <ul className="space-y-2">
-      {data.saved.map((item) => (
+    <div>
+      <div className="mb-3">
+        <input
+          className="w-full max-w-md bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm"
+          placeholder="Search saved questions..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+      <ul className="space-y-2">
+      {filtered.map((item) => (
         <li key={item.id} className="border border-slate-800 rounded p-4">
           <p className="font-medium">{item.question}</p>
           <p className="text-xs text-slate-500 mt-1">
@@ -32,6 +44,7 @@ export default function SavedPage() {
           )}
         </li>
       ))}
-    </ul>
+      </ul>
+    </div>
   );
 }

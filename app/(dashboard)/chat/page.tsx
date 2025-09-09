@@ -4,6 +4,8 @@ import { ChatMessage, AskResponse } from '../../../lib/types';
 import MessageList from '../../../components/MessageList';
 import ChatComposer from '../../../components/ChatComposer';
 import ViewsRenderer from '../../../components/views/ViewsRenderer';
+import ErrorPanel from '../../../components/ErrorPanel';
+import ChatHistory from '../../../components/ChatHistory';
 import { ask } from '../../../lib/api';
 
 function uid() {
@@ -23,11 +25,14 @@ export default function ChatPage() {
   const [busy, setBusy] = useState(false);
   const [lastData, setLastData] = useState<AskResponse | null>(null);
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   async function handleAsk(question: string) {
     setMessages((m) => [...m, { id: uid(), role: 'user', content: question, createdAt: Date.now() }]);
     setBusy(true);
     setLastQuestion(question);
+    setLastError(null);
     try {
       const resp = await ask(question);
       if ((resp as any).error) {
@@ -42,6 +47,7 @@ export default function ChatPage() {
           },
         ]);
         setLastData(null);
+        setLastError((resp as any).error);
       } else if (resp.mode === 'chat') {
         setMessages((m) => [
           ...m,
@@ -72,20 +78,30 @@ export default function ChatPage() {
         ...m,
         { id: uid(), role: 'assistant', content: 'Request failed', error: e.message, createdAt: Date.now() },
       ]);
+      setLastError(e?.message);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <MessageList messages={messages} />
-      {busy && (
-        <div className="text-xs text-slate-400 my-2">Assistant is thinking...</div>
-      )}
-      <ViewsRenderer data={lastData} question={lastQuestion ?? undefined} />
-      <div className="mt-4">
-        <ChatComposer onSend={handleAsk} disabled={busy} />
+    <div className="flex h-full">
+      <ChatHistory currentId={sessionId} onSelect={setSessionId} onNew={() => {
+        setMessages([]);
+        setLastData(null);
+        setLastError(null);
+        setLastQuestion(null);
+      }} />
+      <div className="flex flex-col flex-1 p-2 md:p-4">
+        <MessageList messages={messages} />
+        {busy && (
+          <div className="text-xs text-slate-400 my-2 animate-pulse">Assistant is thinking...</div>
+        )}
+        {lastError && <div className="my-2"><ErrorPanel message={lastError} /></div>}
+        <ViewsRenderer data={lastData} question={lastQuestion ?? undefined} />
+        <div className="mt-4">
+          <ChatComposer onSend={handleAsk} disabled={busy} />
+        </div>
       </div>
     </div>
   );

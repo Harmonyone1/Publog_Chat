@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AskResponse, Column, Row } from '../../lib/types';
 import KpiCard from './KpiCard';
 import BarChartView from './BarChartView';
+import LineChartView from './LineChartView';
 import DataTable from './DataTable';
 import { toCsv } from '../../lib/export';
 
@@ -27,6 +28,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
   const [showSql, setShowSql] = useState(false);
   const csv = useMemo(() => toCsv(columns, rows), [columns, rows]);
   const views = deriveViews(columns, rows);
+  const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   async function handleSave() {
     try {
       await fetch('/api/saved', {
@@ -44,7 +46,16 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
         <div className="text-sm text-slate-400">
           {question ? `Question: ${question}` : null}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <label className="text-xs text-slate-400">Chart:</label>
+          <select
+            className="text-xs bg-slate-900 border border-slate-700 rounded px-2 py-1"
+            value={chartType}
+            onChange={(e) => setChartType(e.target.value as any)}
+          >
+            <option value="bar">Bar</option>
+            <option value="line">Line</option>
+          </select>
           {data.sql && (
             <button
               className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
@@ -93,8 +104,11 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
         </div>
       )}
       {views.kpi && <KpiCard title={views.kpi.title} value={views.kpi.value} />}
-      {views.bar && (
+      {views.bar && chartType === 'bar' && (
         <BarChartView title={views.bar.title} data={views.bar.data} xKey={views.bar.encoding.x} yKey={views.bar.encoding.y} />
+      )}
+      {views.bar && chartType === 'line' && (
+        <LineChartView title={views.bar.title} data={views.bar.data} xKey={views.bar.encoding.x} yKey={views.bar.encoding.y} />
       )}
       <div className="md:col-span-2">
         <DataTable columns={columns} rows={rows} />

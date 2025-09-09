@@ -20,7 +20,7 @@ export default function InsightsPage() {
   return (
     <div className="grid gap-4">
       {data.insights.map((i) => (
-        <div key={i.id} className="border border-slate-800 rounded p-4">
+        <div key={i.id} className="border border-slate-800 rounded p-4 bg-slate-900 animate-fade-in">
           <h2 className="font-semibold">{i.title}</h2>
           <p className="text-sm text-slate-400">{i.description}</p>
           <p className="text-xs text-slate-500 mt-2">

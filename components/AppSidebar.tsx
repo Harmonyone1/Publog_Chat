@@ -11,6 +11,7 @@ const navItems = [
   { href: '/saved', label: 'Saved' },
   { href: '/settings', label: 'Settings' },
   { href: '/support', label: 'Support' },
+  { href: '/plans', label: 'Plans' },
 ];
 
 export default function AppSidebar() {

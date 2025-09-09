@@ -21,7 +21,7 @@ export default function DatasetsPage() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {data.datasets.map((d) => (
-        <div key={d.id} className="border border-slate-800 rounded p-4">
+        <div key={d.id} className="border border-slate-800 rounded p-4 bg-slate-900 animate-fade-in">
           <h2 className="font-semibold">{d.name}</h2>
           <p className="text-sm text-slate-400">{d.description}</p>
           <p className="text-xs text-slate-500 mt-2">
@@ -32,3 +32,4 @@ export default function DatasetsPage() {
     </div>
   );
 }
+
