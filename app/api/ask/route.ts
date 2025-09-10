@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       }
     }
     if (!res) {
-      return NextResponse.json({ error: 'Upstream not reachable', detail: String(lastErr), tried: bases }, { status: 502 });
+      return NextResponse.json({ error: 'Upstream not reachable', detail: String(lastErr), tried: bases }, { status: 502, headers: { 'x-base-tried': bases.join(',') } });
     }
     const ct = res.headers.get('content-type') || 'application/json; charset=utf-8';
     const plan = cookies().get('selected_plan_v1')?.value || 'free';
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
         if ((obj as any)._plan) (shaped as any)._plan = (obj as any)._plan;
         if ((obj as any)._note) (shaped as any)._note = (obj as any)._note;
       }
-      return NextResponse.json(shaped, { status: res.status });
+      return new NextResponse(JSON.stringify(shaped), { status: res.status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'x-base-used': bases.find(b => true) as string } });
     } catch {
       return new NextResponse(text, { status: res.status, headers: { 'Content-Type': ct } });
     }
