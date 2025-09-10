@@ -17,6 +17,7 @@ export async function GET() {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['x-api-key'] = apiKey;
   let lastErr: any = null;
+  let lastNonOk: { status: number; body: any; base: string } | null = null;
   for (const base of bases) {
     try {
       const controller = new AbortController();
@@ -31,11 +32,17 @@ export async function GET() {
       const text = await res.text();
       let body: any = text;
       try { body = JSON.parse(text); } catch {}
-      return NextResponse.json({ ok: res.ok, status: res.status, contentType: res.headers.get('content-type'), body, baseUsed: base, ...result }, { status: 200 });
+      if (res.ok) {
+        return NextResponse.json({ ok: true, status: res.status, contentType: res.headers.get('content-type'), body, baseUsed: base, ...result }, { status: 200 });
+      }
+      lastNonOk = { status: res.status, body, base };
     } catch (e) {
       lastErr = e;
       continue;
     }
   }
-  return NextResponse.json({ ok: false, error: String(lastErr), ...result }, { status: 502 });
+  if (lastNonOk) {
+    return NextResponse.json({ ok: false, status: lastNonOk.status, body: lastNonOk.body, baseUsed: lastNonOk.base, ...result }, { status: 200 });
+  }
+  return NextResponse.json({ ok: false, error: String(lastErr), ...result }, { status: 200 });
 }

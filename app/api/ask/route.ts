@@ -24,10 +24,11 @@ export async function POST(req: Request) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
     if (apiKey) headers['x-api-key'] = apiKey;
-    // Try bases in order until one succeeds
+    // Try bases in order; accept the first 2xx response, otherwise fall back to the last non-2xx/error
     let res: Response | null = null;
     let text = '';
     let lastErr: any = null;
+    let lastNonOk: { res: Response; text: string } | null = null;
     for (const base of bases) {
       try {
         const controller = new AbortController();
@@ -40,14 +41,18 @@ export async function POST(req: Request) {
         });
         clearTimeout(t);
         const bodyText = await r.text();
-        // accept first successful or even 4xx/5xx to pass through real error
-        res = r; text = bodyText; break;
+        if (r.ok) { res = r; text = bodyText; break; }
+        lastNonOk = { res: r, text: bodyText };
       } catch (e) {
         lastErr = e;
         continue;
       }
     }
     if (!res) {
+      if (lastNonOk) {
+        const ctErr = lastNonOk.res.headers.get('content-type') || 'application/json; charset=utf-8';
+        return new NextResponse(lastNonOk.text, { status: lastNonOk.res.status, headers: { 'Content-Type': ctErr, 'x-base-tried': bases.join(',') } });
+      }
       return NextResponse.json({ error: 'Upstream not reachable', detail: String(lastErr), tried: bases }, { status: 502, headers: { 'x-base-tried': bases.join(',') } });
     }
     const ct = res.headers.get('content-type') || 'application/json; charset=utf-8';
@@ -86,7 +91,7 @@ export async function POST(req: Request) {
         if ((obj as any)._plan) (shaped as any)._plan = (obj as any)._plan;
         if ((obj as any)._note) (shaped as any)._note = (obj as any)._note;
       }
-      return new NextResponse(JSON.stringify(shaped), { status: res.status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'x-base-used': bases.find(b => true) as string } });
+      return new NextResponse(JSON.stringify(shaped), { status: res.status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
     } catch {
       return new NextResponse(text, { status: res.status, headers: { 'Content-Type': ct } });
     }
