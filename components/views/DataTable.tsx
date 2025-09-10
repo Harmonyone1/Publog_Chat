@@ -1,5 +1,6 @@
 'use client';
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Column, Row } from '../../lib/types';
 import { formatNumber, looksNumericHeader } from '../../lib/format';
 import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, getFilteredRowModel, useReactTable } from '@tanstack/react-table';
@@ -127,11 +128,25 @@ export default function DataTable({ columns, rows, pageSize = 20, locale = 'en-U
           {pageRows.map((row, i) => (
             <React.Fragment key={row.id}>
               <tr className="border-t border-slate-800">
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-2 py-1">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  const header = String(cell.column.columnDef.header || '');
+                  const value = cell.getValue() as any;
+                  let href: string | null = null;
+                  if (header.toLowerCase() === 'niin' && value) href = '/chat?q=' + encodeURIComponent('Show details for NIIN ' + String(value));
+                  if (header.toLowerCase() === 'company_name' && value) href = '/chat?q=' + encodeURIComponent('Show recent awards and items for company ' + String(value));
+                  if (header.toLowerCase() === 'part_number' && value) href = '/chat?q=' + encodeURIComponent('Show details for part number ' + String(value));
+                  if (header.toLowerCase() === 'contract_number' && value) href = '/chat?q=' + encodeURIComponent('Show line items and supplier for contract ' + String(value));
+                  if (header.toLowerCase() === 'fsc' && value) href = '/chat?q=' + encodeURIComponent('Describe FSC ' + String(value) + ' with name and top NIINs');
+                  return (
+                    <td key={cell.id} className="px-2 py-1">
+                      {href ? (
+                        <Link href={href} className="text-sky-400 hover:underline">{String(value)}</Link>
+                      ) : (
+                        flexRender(cell.column.columnDef.cell, cell.getContext())
+                      )}
+                    </td>
+                  );
+                })}
                 <td className="px-2 py-1 text-right">
                   <button className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800" onClick={() => setExpandedRow(expandedRow === i ? null : i)}>
                     {expandedRow === i ? 'Hide' : 'Details'}
