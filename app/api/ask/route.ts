@@ -7,20 +7,49 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
-    const base = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://qpbhjn080e.execute-api.us-east-1.amazonaws.com';
-    if (!base || !base.startsWith('http')) {
+    const configured = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://qpbhjn080e.execute-api.us-east-1.amazonaws.com';
+    if (!configured || !configured.startsWith('http')) {
       console.error('NEXT_PUBLIC_API_URL is not set to a valid URL');
       return NextResponse.json({ error: 'API base URL not configured' }, { status: 500 });
     }
+    // Prepare possible bases (resilient to stage mismatches)
+    const bases: string[] = [];
+    const noSlash = configured.replace(/\/$/, '');
+    const withoutStage = noSlash.replace(/\/(prod|\$default)$/i, '');
+    const withProd = withoutStage + '/prod';
+    for (const b of [noSlash, withoutStage, withProd]) {
+      if (b && !bases.includes(b)) bases.push(b);
+    }
+
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
     if (apiKey) headers['x-api-key'] = apiKey;
-    const res = await fetch(`${base}/ask`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-    const text = await res.text();
+    // Try bases in order until one succeeds
+    let res: Response | null = null;
+    let text = '';
+    let lastErr: any = null;
+    for (const base of bases) {
+      try {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch(`${base}/ask`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        clearTimeout(t);
+        const bodyText = await r.text();
+        // accept first successful or even 4xx/5xx to pass through real error
+        res = r; text = bodyText; break;
+      } catch (e) {
+        lastErr = e;
+        continue;
+      }
+    }
+    if (!res) {
+      return NextResponse.json({ error: 'Upstream not reachable', detail: String(lastErr), tried: bases }, { status: 502 });
+    }
     const ct = res.headers.get('content-type') || 'application/json; charset=utf-8';
     const plan = cookies().get('selected_plan_v1')?.value || 'free';
     // On upstream error, return payload without gating

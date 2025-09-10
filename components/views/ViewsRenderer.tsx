@@ -32,6 +32,7 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const [tablePageSize, setTablePageSize] = useState<number>(20);
   const chartRef = useRef<HTMLDivElement | null>(null);
+  const [explain, setExplain] = useState<string | null>(null);
   const result = data && data.mode === 'sql' ? data.result : undefined;
   const columns = useMemo(() => (result?.columns ?? []), [result]);
   const rows = useMemo(() => (result?.rows ?? []), [result]);
@@ -155,12 +156,33 @@ export default function ViewsRenderer({ data, question }: { data: AskResponse | 
           )}
           <button
             className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
+            onClick={() => {
+              const dim = columns[0]?.name || 'dimension';
+              const count = rows.length;
+              let summary = '';
+              try {
+                const idx = columns.findIndex((c) => /amount|revenue|total|sum|count|price|spend|quantity/i.test(c.name));
+                const mIdx = idx >= 0 ? idx : 1;
+                const sorted = [...rows].sort((a: any, b: any) => (Number(b[mIdx])||0) - (Number(a[mIdx])||0));
+                const topItems = sorted.slice(0, 3).map((r: any) => `${r[0]} (${r[mIdx]})`).join(', ');
+                summary = `Top entries: ${topItems}`;
+              } catch {}
+              setExplain(`Returned ${count} rows grouped by ${dim}. ${summary}`);
+            }}
+          >
+            Explain
+          </button>
+          <button
+            className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800"
             onClick={handleSave}
           >
             Save
           </button>
         </div>
       </div>
+      {explain && (
+        <div className="md:col-span-2 text-xs text-slate-300">{explain}</div>
+      )}
       {showSql && data.sql && (
         <div className="md:col-span-2">
           <pre className="bg-slate-900 border border-slate-800 rounded p-3 text-xs overflow-x-auto">

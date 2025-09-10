@@ -1,6 +1,8 @@
 'use client';
 import useSWR from 'swr';
 import { useMemo, useState } from 'react';
+import { ask } from '../../../lib/api';
+import ViewsRenderer from '../../../components/views/ViewsRenderer';
 import { usePlan, LIMITS } from '../../../lib/plan';
 
 type SavedItem = {
@@ -52,6 +54,22 @@ export default function SavedPage() {
             <a href={`/chat?q=${encodeURIComponent(item.question)}`} className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800">Re-run</a>
             <button
               className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800"
+              onClick={async (e) => {
+                const btn = e.currentTarget as HTMLButtonElement;
+                btn.disabled = true;
+                btn.textContent = 'Running...';
+                try {
+                  const resp = await ask(item.question);
+                  (item as any)._inline = resp;
+                } catch {}
+                btn.disabled = false;
+                btn.textContent = 'Run inline';
+              }}
+            >
+              Run inline
+            </button>
+            <button
+              className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800"
               onClick={async () => {
                 await fetch('/api/saved', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: item.id }) });
                 location.reload();
@@ -60,6 +78,11 @@ export default function SavedPage() {
               Delete
             </button>
           </div>
+          {(item as any)._inline && (
+            <div className="mt-3">
+              <ViewsRenderer data={(item as any)._inline} question={item.question} />
+            </div>
+          )}
         </li>
       ))}
       </ul>

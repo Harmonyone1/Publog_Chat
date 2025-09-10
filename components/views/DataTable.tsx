@@ -1,6 +1,8 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ask } from '../../lib/api';
+import { AskResponse, Column as ColType, Row as RowType } from '../../lib/types';
 import { Column, Row } from '../../lib/types';
 import { formatNumber, looksNumericHeader } from '../../lib/format';
 import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, getFilteredRowModel, useReactTable } from '@tanstack/react-table';
@@ -46,6 +48,9 @@ export default function DataTable({ columns, rows, pageSize = 20, locale = 'en-U
   }
 
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [drillLoading, setDrillLoading] = useState<Record<number, boolean>>({});
+  const [drillError, setDrillError] = useState<Record<number, string | null>>({});
+  const [drillResult, setDrillResult] = useState<Record<number, AskResponse | null>>({});
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded p-4 overflow-x-auto">
@@ -156,7 +161,65 @@ export default function DataTable({ columns, rows, pageSize = 20, locale = 'en-U
               {expandedRow === i && (
                 <tr>
                   <td colSpan={columns.length + 1} className="px-2 py-2 bg-slate-950/60">
-                    <pre className="text-xs overflow-x-auto">{JSON.stringify(row.original, null, 2)}</pre>
+                    <div className="text-xs text-slate-300 mb-2">Row details</div>
+                    <pre className="text-xs overflow-x-auto mb-3">{JSON.stringify(row.original, null, 2)}</pre>
+                    <div className="text-xs text-slate-300 mb-2">Inline drill-down</div>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {['niin','company_name','part_number','contract_number','fsc'].map((key) => {
+                        const val = (row.original as any)[key];
+                        if (!val) return null;
+                        const questionMap: Record<string, string> = {
+                          niin: `Show details for NIIN ${val}`,
+                          company_name: `Show recent awards and items for company ${val}`,
+                          part_number: `Show details for part number ${val}`,
+                          contract_number: `Show line items and supplier for contract ${val}`,
+                          fsc: `Describe FSC ${val} with name and top NIINs`,
+                        };
+                        return (
+                          <button
+                            key={key}
+                            className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800"
+                            onClick={async () => {
+                              setDrillError((e) => ({ ...e, [i]: null }));
+                              setDrillLoading((l) => ({ ...l, [i]: true }));
+                              setDrillResult((r) => ({ ...r, [i]: null }));
+                              try {
+                                const q = questionMap[key];
+                                const resp = await ask(q);
+                                setDrillResult((r) => ({ ...r, [i]: resp }));
+                              } catch (e: any) {
+                                setDrillError((er) => ({ ...er, [i]: e?.message || 'Failed' }));
+                              } finally {
+                                setDrillLoading((l) => ({ ...l, [i]: false }));
+                              }
+                            }}
+                          >
+                            {key}: {String(val)}
+                          </button>
+                        );
+                      })}
+                      <button
+                        className="text-xs px-2 py-1 border border-slate-700 rounded hover:bg-slate-800"
+                        onClick={() => {
+                          setDrillResult((r) => ({ ...r, [i]: null }));
+                          setDrillError((e) => ({ ...e, [i]: null }));
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    {drillLoading[i] && (
+                      <div className="text-xs text-slate-400">Loading drill-down...</div>
+                    )}
+                    {drillError[i] && (
+                      <div className="text-xs text-red-400">{drillError[i]}</div>
+                    )}
+                    {drillResult[i] && (drillResult[i] as any).mode === 'sql' && (drillResult[i] as any).result && (
+                      <div className="mt-2">
+                        <div className="text-xs text-slate-300 mb-1">Drill-down results</div>
+                        <DataTable columns={(drillResult[i] as any).result.columns as ColType[]} rows={(drillResult[i] as any).result.rows as RowType[]} pageSize={10} />
+                      </div>
+                    )}
                   </td>
                 </tr>
               )}
