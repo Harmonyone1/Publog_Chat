@@ -50,7 +50,14 @@ export async function POST(req: Request) {
         }
         delete obj.sql;
       }
-      return NextResponse.json(obj, { status: res.status });
+      // Ensure AskResponse shape for the client: if result exists but no mode, mark as SQL mode
+      let shaped: any = obj;
+      if (!('mode' in obj) && obj && typeof obj === 'object' && obj.result && typeof obj.result === 'object') {
+        shaped = { mode: 'sql', result: obj.result, sql: obj.sql };
+        if ((obj as any)._plan) (shaped as any)._plan = (obj as any)._plan;
+        if ((obj as any)._note) (shaped as any)._note = (obj as any)._note;
+      }
+      return NextResponse.json(shaped, { status: res.status });
     } catch {
       return new NextResponse(text, { status: res.status, headers: { 'Content-Type': ct } });
     }
