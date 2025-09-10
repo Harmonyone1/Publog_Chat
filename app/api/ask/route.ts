@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -57,8 +58,49 @@ export async function POST(req: Request) {
     }
     const ct = res.headers.get('content-type') || 'application/json; charset=utf-8';
     const plan = cookies().get('selected_plan_v1')?.value || 'free';
-    // On upstream error, return payload without gating
+    // On upstream error, attempt Lambda-direct fallback (if configured)
     if (!res.ok) {
+      const lambdaArn = process.env.LAMBDA_ARN;
+      if (lambdaArn) {
+        try {
+          const lc = new LambdaClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const event = { body: JSON.stringify({ question: (payload && payload.question) || '' }) };
+          const out = await lc.send(new InvokeCommand({ FunctionName: lambdaArn, Payload: Buffer.from(JSON.stringify(event)) }));
+          const raw = out.Payload ? Buffer.from(out.Payload as Uint8Array).toString('utf-8') : '';
+          let obj: any = raw;
+          try { obj = JSON.parse(raw); } catch {}
+          // Unwrap API Gateway envelope
+          if (obj && typeof obj === 'object' && 'statusCode' in obj && 'body' in obj) {
+            const inner = typeof obj.body === 'string' ? JSON.parse(obj.body) : obj.body;
+            const statusCode = obj.statusCode || 200;
+            if (statusCode >= 200 && statusCode < 300) {
+              let shaped: any = inner;
+              const plan = cookies().get('selected_plan_v1')?.value || 'free';
+              if (plan === 'free' && shaped && typeof shaped === 'object') {
+                (shaped as any)._plan = 'free';
+                if (shaped.result && Array.isArray(shaped.result.rows)) {
+                  const cap = 100;
+                  if (shaped.result.rows.length > cap) {
+                    shaped.result.rows = shaped.result.rows.slice(0, cap);
+                    (shaped as any)._note = `Capped to ${cap} rows on Free plan.`;
+                  }
+                }
+                delete shaped.sql;
+              }
+              if (!('mode' in shaped) && shaped && shaped.result) {
+                shaped = { mode: 'sql', result: shaped.result, sql: shaped.sql };
+              }
+              return new NextResponse(JSON.stringify(shaped), { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+            }
+            // propagate fallback error body
+            return new NextResponse(typeof inner === 'string' ? inner : JSON.stringify(inner), { status: statusCode, headers: { 'Content-Type': 'application/json' } });
+          }
+          // If no envelope, return as-is
+          return new NextResponse(raw || text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+        } catch (e) {
+          // fall through to original error
+        }
+      }
       try {
         const errObj = JSON.parse(text);
         return NextResponse.json(errObj, { status: res.status });

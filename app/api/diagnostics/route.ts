@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,25 @@ export async function GET() {
     } catch (e) {
       lastErr = e;
       continue;
+    }
+  }
+  // Try Lambda-direct fallback if configured
+  const lambdaArn = process.env.LAMBDA_ARN;
+  if (lambdaArn) {
+    try {
+      const lc = new LambdaClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const event = { body: JSON.stringify({ question: 'Top 1 NIINs by revenue in 2022' }) };
+      const out = await lc.send(new InvokeCommand({ FunctionName: lambdaArn, Payload: Buffer.from(JSON.stringify(event)) }));
+      const raw = out.Payload ? Buffer.from(out.Payload as Uint8Array).toString('utf-8') : '';
+      let obj: any = raw;
+      try { obj = JSON.parse(raw); } catch {}
+      if (obj && typeof obj === 'object' && 'statusCode' in obj && 'body' in obj) {
+        const inner = typeof obj.body === 'string' ? JSON.parse(obj.body) : obj.body;
+        return NextResponse.json({ ok: true, status: obj.statusCode || 200, body: inner, baseUsed: 'lambda', ...result }, { status: 200 });
+      }
+      return NextResponse.json({ ok: true, status: 200, body: obj, baseUsed: 'lambda', ...result }, { status: 200 });
+    } catch (e) {
+      // ignore fallback errors
     }
   }
   if (lastNonOk) {
