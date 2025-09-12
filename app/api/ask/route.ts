@@ -115,6 +115,31 @@ export async function POST(req: Request) {
         const inner = typeof obj.body === 'string' ? JSON.parse(obj.body) : obj.body;
         obj = inner || obj;
       }
+      // Normalize result columns to Column[] { name }
+      const normalizeColumns = (res: any) => {
+        if (!res || !res.columns) return res;
+        const cols = res.columns;
+        let mapped: any[] = [];
+        if (Array.isArray(cols)) {
+          mapped = cols.map((c: any) => {
+            if (typeof c === 'string') return { name: c };
+            if (c && typeof c === 'object' && 'Name' in c && !('name' in c)) return { name: (c as any).Name };
+            return { name: c?.name ?? String(c ?? '') };
+          }).map((c: any) => {
+            const nm = String(c.name || '').trim();
+            // Canonicalize known variants for display
+            if (/^fsc_name$/i.test(nm)) return { name: 'FSC_TITLE' };
+            if (/^fsg_name$/i.test(nm)) return { name: 'FSG_TITLE' };
+            if (/^itemname$/i.test(nm)) return { name: 'item_name' };
+            if (/^item name$/i.test(nm)) return { name: 'item_name' };
+            return { name: nm };
+          });
+        }
+        return { ...res, columns: mapped };
+      };
+      if (obj && typeof obj === 'object' && obj.result) {
+        obj.result = normalizeColumns(obj.result);
+      }
       if (plan === 'free' && obj && typeof obj === 'object') {
         (obj as any)._plan = 'free';
         if (obj.result && Array.isArray(obj.result.rows)) {

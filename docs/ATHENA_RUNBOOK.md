@@ -25,6 +25,10 @@ Execute
 Files
 - docs/sql/10_raw_sources.sql
 - docs/sql/20_union_ctas.sql
+- docs/sql/25_union_ctas_v2_zstd.sql (optional)
 - docs/sql/30_parts_canonical_view.sql
+- docs/sql/40_projection_table.sql (recommended)
+- docs/sql/55_item_dim_latest.sql (optional, recommended for joins)
 - docs/sql/60_prepared_statements.sql
+- docs/sql/65_gold_aggregates.sql (optional, recommended for Top-N)
 - docs/sql/99_validation.sql
