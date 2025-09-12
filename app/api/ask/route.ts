@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { fetchNiinMap } from '../../../lib/athena';
 import { cookies } from 'next/headers';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
@@ -139,6 +140,34 @@ export async function POST(req: Request) {
       };
       if (obj && typeof obj === 'object' && obj.result) {
         obj.result = normalizeColumns(obj.result);
+        try {
+          // Enrich NIIN-level results with item_name and FSC_TITLE when missing
+          const res: any = obj.result;
+          const colNames: string[] = (res.columns || []).map((c: any) => String(c.name || '').trim());
+          const idxNiin = colNames.findIndex((n) => /^niin$/i.test(n));
+          if (idxNiin >= 0) {
+            let idxItem = colNames.findIndex((n) => /^item_name$/i.test(n));
+            let idxFsc = colNames.findIndex((n) => /^fsc_title$/i.test(n));
+            // Add columns if missing
+            if (idxItem < 0) { res.columns.push({ name: 'item_name' }); idxItem = res.columns.length - 1; }
+            if (idxFsc < 0) { res.columns.push({ name: 'FSC_TITLE' }); idxFsc = res.columns.length - 1; }
+            const niins: string[] = (res.rows || []).map((r: any[]) => (r[idxNiin] ?? '') as string);
+            const map = await fetchNiinMap(niins);
+            res.rows = (res.rows || []).map((r: any[]) => {
+              const n = (r[idxNiin] ?? '') as string;
+              const m = map[n];
+              const out = [...r];
+              if (m) {
+                if (out[idxItem] == null || String(out[idxItem]).trim() === '') out[idxItem] = m.item_name ?? out[idxItem];
+                if (out[idxFsc] == null || String(out[idxFsc]).trim() === '') out[idxFsc] = m.fsc_title ?? out[idxFsc];
+              }
+              return out;
+            });
+            obj.result = res;
+          }
+        } catch {
+          // best-effort enrichment; ignore failures
+        }
       }
       if (plan === 'free' && obj && typeof obj === 'object') {
         (obj as any)._plan = 'free';
