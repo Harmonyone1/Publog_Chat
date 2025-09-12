@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-athena": "^3.654.0",
     "@aws-sdk/client-dynamodb": "^3.653.0",
     "@aws-sdk/client-lambda": "^3.653.0",
     "@aws-sdk/lib-dynamodb": "^3.653.0",
