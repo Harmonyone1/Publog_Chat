@@ -5,14 +5,14 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const configured = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || '';
+  const configured = process.env.NEXT_PUBLIC_API_URL || '';
   const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY || '';
   const noSlash = configured.replace(/\/$/, '');
   const withoutStage = noSlash.replace(/\/(prod|\$default)$/i, '');
   const withProd = withoutStage + '/prod';
   const bases = [noSlash, withoutStage, withProd].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
   const result: any = { configured, bases, hasApiKey: Boolean(apiKey) };
-  if (!configured) {
+  if (!configured || !/^https?:\/\//i.test(configured)) {
     return NextResponse.json({ ok: false, error: 'API base URL not configured', ...result }, { status: 500 });
   }
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
-    const configured = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://qpbhjn080e.execute-api.us-east-1.amazonaws.com';
+    const configured = process.env.NEXT_PUBLIC_API_URL;
     if (!configured || !configured.startsWith('http')) {
       console.error('NEXT_PUBLIC_API_URL is not set to a valid URL');
       return NextResponse.json({ error: 'API base URL not configured' }, { status: 500 });
