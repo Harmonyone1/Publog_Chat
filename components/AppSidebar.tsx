@@ -15,7 +15,7 @@ const navItems = [
 
 export default function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'PubLog';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Orcha Insights';
 
   return (
     <aside className="w-full bg-slate-900 text-slate-100 flex flex-col p-2 md:p-4 gap-2">

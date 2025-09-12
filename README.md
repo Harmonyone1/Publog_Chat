@@ -1,6 +1,6 @@
-# PubLog Insights
+# Orcha Insights
 
-Business-friendly analytics/chat application built with Next.js 14, TypeScript and Tailwind CSS. Users ask natural-language questions about PubLog data and receive charts, tables and KPIs – SQL stays server-side.
+Business-friendly analytics/chat application built with Next.js 14, TypeScript and Tailwind CSS. Users ask natural-language questions about your data and receive charts, tables and KPIs – SQL stays server-side.
 
 ## Features
 - Dark dashboard layout with sidebar navigation (Chat, Insights, Datasets, Settings, Support)

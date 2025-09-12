@@ -1,5 +1,5 @@
 export default function AppHeader() {
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'PubLog';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Orcha Insights';
   const env = process.env.NEXT_PUBLIC_DATA_CLASSIFICATION || 'Internal';
 
   return (
