@@ -60,6 +60,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Upstream not reachable', detail: String(lastErr), tried: bases }, { status: 502, headers: { 'x-base-tried': bases.join(',') } });
     }
     const ct = res.headers.get('content-type') || 'application/json; charset=utf-8';
+    const isAsync = res.status === 202;
     const plan = cookies().get('selected_plan_v1')?.value || 'free';
     // On upstream error, attempt Lambda-direct fallback (if configured)
     if (!res.ok) {
@@ -117,6 +118,10 @@ export async function POST(req: Request) {
       if (obj && typeof obj === 'object' && 'statusCode' in obj && 'body' in obj) {
         const inner = typeof obj.body === 'string' ? JSON.parse(obj.body) : obj.body;
         obj = inner || obj;
+      }
+      // If upstream is async (202), pass through untouched so the client sees query_id/state/sql/plan
+      if (isAsync) {
+        return new NextResponse(JSON.stringify(obj), { status: 202, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'x-async': '1' } });
       }
       if (plan === 'free' && obj && typeof obj === 'object') {
         (obj as any)._plan = 'free';
