@@ -21,6 +21,9 @@ export async function POST(req: Request) {
     for (const b of [noSlash, withoutStage, withProd]) {
       if (b && !bases.includes(b)) bases.push(b);
     }
+    // Known working fallback API (safety net if env mis-set)
+    const known = 'https://qpbhjn080e.execute-api.us-east-1.amazonaws.com';
+    if (!bases.includes(known)) bases.push(known);
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
