@@ -1,6 +1,6 @@
-# PubLog Insights
+﻿# Orcha Insights
 
-Business-friendly analytics/chat application built with Next.js 14, TypeScript and Tailwind CSS. Users ask natural-language questions about PubLog data and receive charts, tables and KPIs – SQL stays server-side.
+Business-friendly analytics/chat application built with Next.js 14, TypeScript and Tailwind CSS. Users ask natural-language questions about your data and receive charts, tables and KPIs — SQL stays server-side.
 
 ## Features
 - Dark dashboard layout with sidebar navigation (Chat, Insights, Datasets, Settings, Support)
@@ -25,7 +25,7 @@ Open <http://localhost:3000>.
 
 ## Deploy to Vercel
 1. Push this folder to a GitHub repo.
-2. In Vercel: **New Project → Import** that repo.
+2. In Vercel: **New Project â†’ Import** that repo.
 3. Set env var `NEXT_PUBLIC_API_URL` to your API Gateway base URL (no trailing `/ask`).
    - Default stage (current setup): `https://qpbhjn080e.execute-api.us-east-1.amazonaws.com`
    - Explicit stage example: `https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod`
@@ -50,8 +50,9 @@ If only `{columns,rows}` are returned the client synthesizes basic KPI, bar char
 - 500 from API: check Lambda logs
 - CORS errors: ensure API Gateway allows your domain and `POST`
   - Current allowed origins: `https://publog-chat-6lxsbl196-davids-projects-e5e2fe81.vercel.app`, `http://localhost:3000`
- - If Saved items don’t persist across browsers, remember they are cookie-based per device.
+ - If Saved items donâ€™t persist across browsers, remember they are cookie-based per device.
 
 ---
 
-See also: [DEPLOY.md](./docs/DEPLOY.md) · [API_CONTRACT.md](./docs/API_CONTRACT.md) · [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+See also: [DEPLOY.md](./docs/DEPLOY.md) Â· [API_CONTRACT.md](./docs/API_CONTRACT.md) Â· [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+
