@@ -51,14 +51,17 @@ export async function fetchFscMap(fscs: string[]): Promise<Record<string, { fsc_
   const unique = Array.from(new Set(fscs.filter(Boolean))).slice(0, 500);
   const inList = unique.map((v) => `'${String(v).replace(/'/g, "''")}'`).join(",");
   const sql = `
-    SELECT fsc, fsc_name, fsg_name
+    SELECT
+      fsc,
+      COALESCE(FSC_TITLE, fsc_title, fsc_name) AS fsc_title_out,
+      COALESCE(FSG_TITLE, fsg_title, fsg_name) AS fsg_title_out
     FROM publog_gold.dim_fsc
     WHERE fsc IN (${inList})
   `;
   const { columns, rows } = await runSql(sql);
   const idxF = columns.findIndex((c) => c.toLowerCase() === 'fsc');
-  const idxFscTitle = columns.findIndex((c) => c.toLowerCase() === 'fsc_name');
-  const idxFsgTitle = columns.findIndex((c) => c.toLowerCase() === 'fsg_name');
+  const idxFscTitle = columns.findIndex((c) => c.toLowerCase() === 'fsc_title_out');
+  const idxFsgTitle = columns.findIndex((c) => c.toLowerCase() === 'fsg_title_out');
   const map: Record<string, { fsc_title: string | null; fsg_title: string | null }> = {};
   for (const r of rows) {
     const f = r[idxF];
