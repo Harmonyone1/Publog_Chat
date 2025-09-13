@@ -5,7 +5,7 @@ import UserMenu from './UserMenu';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'PubLog';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Orcha Insights';
   const env = process.env.NEXT_PUBLIC_DATA_CLASSIFICATION || 'Internal';
   const [collapsed, setCollapsed] = useState(false);
   return (

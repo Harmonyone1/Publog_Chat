@@ -5,8 +5,8 @@ import { PlanProvider } from '../lib/plan';
 import AuthProvider from '../components/AuthProvider';
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_APP_NAME || 'PubLog Insights',
-  description: 'Ask natural-language questions over your PubLog data',
+  title: process.env.NEXT_PUBLIC_APP_NAME || 'Orcha Insights',
+  description: 'Ask natural-language questions over your data with Orcha Insights',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
