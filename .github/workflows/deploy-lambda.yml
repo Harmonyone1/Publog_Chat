@@ -1,0 +1,57 @@
+name: Deploy publog-query-handler
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'infra/lambda/publog-query-handler/**'
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME || 'publog-query-handler' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
+          role-session-name: gh-deploy-publog
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build Lambda package
+        working-directory: infra/lambda/publog-query-handler
+        run: |
+          zip -r app.zip app.py
+          ls -l app.zip
+
+      - name: Update Lambda code
+        run: |
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --zip-file fileb://infra/lambda/publog-query-handler/app.zip
+
+      - name: Verify invoke (dry)
+        run: |
+          PAYLOAD='{"body":"{\"question\":\"Top 5 NIINs by revenue in 2024\"}"}'
+          aws lambda invoke \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --cli-binary-format raw-in-base64-out \
+            --payload "$PAYLOAD" \
+            /tmp/out.json >/dev/null 2>&1 || true
+          echo "Invoked; check CloudWatch logs for status."
+

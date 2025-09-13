@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
     if (apiKey) headers['x-api-key'] = apiKey;
-    // Try bases in order; accept the first 2xx response, otherwise fall back to the last non-2xx/error
+    // Try bases in order; accept the first 2xx response, also accept 202 async
     let res: Response | null = null;
     let text = '';
     let lastErr: any = null;
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         });
         clearTimeout(t);
         const bodyText = await r.text();
-        if (r.ok) { res = r; text = bodyText; break; }
+        if (r.ok || r.status === 202) { res = r; text = bodyText; break; }
         lastNonOk = { res: r, text: bodyText };
       } catch (e) {
         lastErr = e;
