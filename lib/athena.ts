@@ -46,3 +46,27 @@ export async function fetchNiinMap(niins: string[]): Promise<Record<string, { it
   return map;
 }
 
+export async function fetchFscMap(fscs: string[]): Promise<Record<string, { fsc_title: string | null; fsg_title: string | null }>> {
+  if (!fscs.length) return {} as any;
+  const unique = Array.from(new Set(fscs.filter(Boolean))).slice(0, 500);
+  const inList = unique.map((v) => `'${String(v).replace(/'/g, "''")}'`).join(",");
+  const sql = `
+    SELECT fsc, fsc_name, fsg_name
+    FROM publog_gold.dim_fsc
+    WHERE fsc IN (${inList})
+  `;
+  const { columns, rows } = await runSql(sql);
+  const idxF = columns.findIndex((c) => c.toLowerCase() === 'fsc');
+  const idxFscTitle = columns.findIndex((c) => c.toLowerCase() === 'fsc_name');
+  const idxFsgTitle = columns.findIndex((c) => c.toLowerCase() === 'fsg_name');
+  const map: Record<string, { fsc_title: string | null; fsg_title: string | null }> = {};
+  for (const r of rows) {
+    const f = r[idxF];
+    if (!f) continue;
+    map[f] = {
+      fsc_title: (idxFscTitle >= 0 ? (r[idxFscTitle] as any) : null),
+      fsg_title: (idxFsgTitle >= 0 ? (r[idxFsgTitle] as any) : null),
+    };
+  }
+  return map;
+}

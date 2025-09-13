@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchNiinMap } from '../../../lib/athena';
+import { fetchNiinMap, fetchFscMap } from '../../../lib/athena';
 import { cookies } from 'next/headers';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
@@ -151,8 +151,8 @@ export async function POST(req: Request) {
             // Add columns if missing
             if (idxItem < 0) { res.columns.push({ name: 'item_name' }); idxItem = res.columns.length - 1; }
             if (idxFsc < 0) { res.columns.push({ name: 'FSC_TITLE' }); idxFsc = res.columns.length - 1; }
-            const niins: string[] = (res.rows || []).map((r: any[]) => (r[idxNiin] ?? '') as string);
-            const map = await fetchNiinMap(niins);
+          const niins: string[] = (res.rows || []).map((r: any[]) => (r[idxNiin] ?? '') as string);
+          const map = await fetchNiinMap(niins);
             res.rows = (res.rows || []).map((r: any[]) => {
               const n = (r[idxNiin] ?? '') as string;
               const m = map[n];
@@ -160,6 +160,33 @@ export async function POST(req: Request) {
               if (m) {
                 if (out[idxItem] == null || String(out[idxItem]).trim() === '') out[idxItem] = m.item_name ?? out[idxItem];
                 if (out[idxFsc] == null || String(out[idxFsc]).trim() === '') out[idxFsc] = m.fsc_title ?? out[idxFsc];
+              }
+              return out;
+            });
+            obj.result = res;
+          }
+        } catch {
+          // best-effort enrichment; ignore failures
+        }
+        try {
+          // Enrich FSC-level results with FSC_TITLE and FSG_TITLE when missing
+          const res: any = obj.result;
+          const colNames: string[] = (res.columns || []).map((c: any) => String(c.name || '').trim());
+          const idxFsc = colNames.findIndex((n) => /^fsc$/i.test(n));
+          if (idxFsc >= 0) {
+            let idxFscTitle = colNames.findIndex((n) => /^fsc_title$/i.test(n));
+            let idxFsgTitle = colNames.findIndex((n) => /^fsg_title$/i.test(n));
+            if (idxFscTitle < 0) { res.columns.push({ name: 'FSC_TITLE' }); idxFscTitle = res.columns.length - 1; }
+            if (idxFsgTitle < 0) { res.columns.push({ name: 'FSG_TITLE' }); idxFsgTitle = res.columns.length - 1; }
+            const fscs: string[] = (res.rows || []).map((r: any[]) => (r[idxFsc] ?? '') as string);
+            const mapF = await fetchFscMap(fscs);
+            res.rows = (res.rows || []).map((r: any[]) => {
+              const f = (r[idxFsc] ?? '') as string;
+              const m = mapF[f];
+              const out = [...r];
+              if (m) {
+                if (out[idxFscTitle] == null || String(out[idxFscTitle]).trim() === '') out[idxFscTitle] = m.fsc_title ?? out[idxFscTitle];
+                if (out[idxFsgTitle] == null || String(out[idxFsgTitle]).trim() === '') out[idxFsgTitle] = m.fsg_title ?? out[idxFsgTitle];
               }
               return out;
             });
