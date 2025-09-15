@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
+    const useLambdaFirst = (process.env.USE_LAMBDA_FIRST || '').toLowerCase() === 'true';
+    const lambdaArn = process.env.LAMBDA_ARN;
     const configured = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://qpbhjn080e.execute-api.us-east-1.amazonaws.com';
     if (!configured || !configured.startsWith('http')) {
       console.error('NEXT_PUBLIC_API_URL is not set to a valid URL');
@@ -28,6 +30,47 @@ export async function POST(req: Request) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
     if (apiKey) headers['x-api-key'] = apiKey;
+
+    // Lambda-first path (optional feature flag)
+    if (useLambdaFirst && lambdaArn) {
+      try {
+        const lc = new LambdaClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const event = { body: JSON.stringify(payload) };
+        const out = await lc.send(new InvokeCommand({ FunctionName: lambdaArn, Payload: Buffer.from(JSON.stringify(event)) }));
+        const raw = out.Payload ? Buffer.from(out.Payload as Uint8Array).toString('utf-8') : '';
+        let obj: any = raw;
+        try { obj = JSON.parse(raw); } catch {}
+        if (obj && typeof obj === 'object' && 'statusCode' in obj && 'body' in obj) {
+          const inner = typeof obj.body === 'string' ? JSON.parse(obj.body) : obj.body;
+          const statusCode = obj.statusCode || 200;
+          if (statusCode >= 200 && statusCode < 300) {
+            let shaped: any = inner;
+            const plan = cookies().get('selected_plan_v1')?.value || 'free';
+            if (plan === 'free' && shaped && typeof shaped === 'object') {
+              (shaped as any)._plan = 'free';
+              if (shaped.result && Array.isArray(shaped.result.rows)) {
+                const cap = 100;
+                if (shaped.result.rows.length > cap) {
+                  shaped.result.rows = shaped.result.rows.slice(0, cap);
+                  (shaped as any)._note = `Capped to ${cap} rows on Free plan.`;
+                }
+              }
+              delete shaped.sql;
+            }
+            if (!('mode' in shaped) && shaped && shaped.result) {
+              shaped = { mode: 'sql', result: shaped.result, sql: shaped.sql };
+            }
+            return new NextResponse(JSON.stringify(shaped), { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+          }
+          // propagate fallback error body
+          return new NextResponse(typeof inner === 'string' ? inner : JSON.stringify(inner), { status: statusCode, headers: { 'Content-Type': 'application/json' } });
+        }
+        // If no envelope, return as-is
+        return new NextResponse(raw || '', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      } catch (e) {
+        // Continue to API bases on failure
+      }
+    }
     // Try bases in order; accept the first 2xx response, also accept 202 async
     let res: Response | null = null;
     let text = '';
